@@ -26,10 +26,33 @@
 - Backfill script needs `.env.local` populated before running
 - IFPA stats endpoints (/stats/overall, /stats/events_by_year, etc.) not in formal API docs but work
 
+### Session 2 (Feb 5, 2026) — Deployment
+
+#### What was done
+- Created Supabase project `ifpa-health` (ref: ryteszuvasrfppgecnwe, region: us-west-1)
+- Ran migration (11 tables, RLS, indexes, seed data)
+- **Fixed IFPA API response mismatches** — the API field names differ from what the docs suggest:
+  - `events_by_year`: response key is `stats` not `events_by_year`, fields are `tournament_count`/`player_count` (singular)
+  - `players_by_year`: response key is `stats`, fields are `current_year_count`/`previous_year_count` (not `unique_players`/`returning_players`)
+  - `country_players`: response key is `stats` not `country_list`
+  - `stats/overall`: age nested under `stats.age` with different field names (`age_18_to_29` not `18_29`)
+  - `rankings/wppr`: has `name` (full) not `first_name`/`last_name`, `current_rank` not `wppr_rank`, `rating_value` not `ratings_value`
+- Fixed IFPA client, all 6 collectors, and backfill script to match real API
+- Ran backfill: 211 records (10 annual, 86 monthly, 51 country, 50 WPPR, 10 observations, health score, forecast)
+- Deployed to Vercel: https://ifpa-health.vercel.app
+- Crons configured: daily 8am UTC, weekly Monday 9am UTC
+
+#### Health score result
+- Initial score: **48.9 (Concerning)** — lower than expected ~70
+- Growth component is 0 because 2026 YTD (partial year) vs 2025 (full year) shows -94% "decline"
+- This will self-correct as 2026 data accumulates through the year
+- Other components: Attendance 92.5, Retention 64.6, Momentum 44.7, Diversity 64.0, Youth 44.3
+
+#### Forecast
+- 15,575 tournaments projected for 2026 (based on 2 months of data, wide CI expected)
+
 ### Next steps
-- Create Supabase project and run migration
-- Fill in `.env.local` with Supabase credentials
-- Run backfill script
-- Deploy to Vercel
-- Verify health score ~70
 - Mobile responsive testing
+- Consider adjusting health score to use same-period YoY comparison instead of full-year vs YTD
+- Monitor cron jobs running correctly
+- Custom domain (optional)
