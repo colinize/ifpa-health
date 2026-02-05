@@ -51,8 +51,27 @@
 #### Forecast
 - 15,575 tournaments projected for 2026 (based on 2 months of data, wide CI expected)
 
+### Session 3 (Feb 5, 2026) — Data Accuracy Fixes
+
+#### Issues identified via Playwright inspection
+1. Metric cards showed -94% YoY (comparing 2026 partial vs 2025 full year)
+2. Unique Players showed 0 (no 2026 data yet)
+3. WPPR table unsorted (random rank order)
+4. Historical Trends chart showed 2026 as cliff-drop (partial year plotted with full years)
+5. Geographic chart inverted (Slovenia at top, US at bottom)
+
+#### Fixes applied
+- **Metric cards + health scorer**: Use last complete year (2025) instead of current partial year (2026) for YoY and growth calculations
+- **Historical charts**: Pass only complete years to AnnualTrendsChart and RetentionChart
+- **WPPR query**: Added `.order('wppr_rank', { ascending: true })`
+- **Geographic chart**: Removed `.reverse()` — Recharts vertical BarChart renders first array item at top, so descending sort is correct
+- **Backfill script**: Same complete-year fix applied
+
+#### Health score after fix
+- **66.5 (Healthy)** — much more accurate than 48.9
+- Growth 75 (+10.2% avg YoY), Attendance 82, Retention 85, Momentum 45, Diversity 30, Youth 44
+
 ### Next steps
 - Mobile responsive testing
-- Consider adjusting health score to use same-period YoY comparison instead of full-year vs YTD
 - Monitor cron jobs running correctly
 - Custom domain (optional)
