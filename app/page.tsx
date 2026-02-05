@@ -35,14 +35,20 @@ export default async function DashboardPage() {
     supabase.from('monthly_event_counts').select('*').order('year', { ascending: true }).order('month', { ascending: true }),
     supabase.from('overall_stats_snapshots').select('*').order('snapshot_date', { ascending: false }).limit(1).single(),
     supabase.from('country_snapshots').select('*').order('snapshot_date', { ascending: false }).limit(20),
-    supabase.from('wppr_rankings').select('*').order('snapshot_date', { ascending: false }).limit(25),
+    supabase.from('wppr_rankings').select('*').order('snapshot_date', { ascending: false }).order('wppr_rank', { ascending: true }).limit(25),
     supabase.from('forecasts').select('*').order('forecast_date', { ascending: false }).limit(1).single(),
     supabase.from('collection_runs').select('*').order('started_at', { ascending: false }).limit(1).single(),
   ])
 
-  // Get latest year data for metric cards
-  const latestYear = annualSnapshots?.[annualSnapshots.length - 1]
-  const priorYear = annualSnapshots?.[annualSnapshots.length - 2]
+  // Use the last COMPLETE year for metric cards (not the current incomplete year)
+  const currentYear = new Date().getFullYear()
+  const completeYears = annualSnapshots?.filter((s) => s.year < currentYear) ?? []
+  const currentYearData = annualSnapshots?.find((s) => s.year === currentYear)
+  const latestCompleteYear = completeYears[completeYears.length - 1]
+  const priorCompleteYear = completeYears[completeYears.length - 2]
+
+  // Exclude current incomplete year from historical charts
+  const historicalData = completeYears
 
   return (
     <div className="min-h-screen bg-background">
@@ -71,29 +77,29 @@ export default async function DashboardPage() {
 
         <Separator />
 
-        {/* KEY METRICS ROW */}
+        {/* KEY METRICS ROW — uses last complete year to avoid misleading partial-year YoY */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <MetricCard
             title="Tournaments"
-            value={latestYear?.tournaments}
-            yoyPct={latestYear?.tournament_yoy_pct}
-            year={latestYear?.year}
+            value={latestCompleteYear?.tournaments}
+            yoyPct={latestCompleteYear?.tournament_yoy_pct}
+            year={latestCompleteYear?.year}
           />
           <MetricCard
             title="Player Entries"
-            value={latestYear?.player_entries}
-            yoyPct={latestYear?.entry_yoy_pct}
-            year={latestYear?.year}
+            value={latestCompleteYear?.player_entries}
+            yoyPct={latestCompleteYear?.entry_yoy_pct}
+            year={latestCompleteYear?.year}
           />
           <MetricCard
             title="Unique Players"
-            value={latestYear?.unique_players}
-            year={latestYear?.year}
+            value={latestCompleteYear?.unique_players}
+            year={latestCompleteYear?.year}
           />
           <MetricCard
             title="Avg Attendance"
-            value={latestYear?.avg_attendance}
-            year={latestYear?.year}
+            value={latestCompleteYear?.avg_attendance}
+            year={latestCompleteYear?.year}
             decimals={1}
           />
         </section>
@@ -101,7 +107,7 @@ export default async function DashboardPage() {
         {/* HISTORICAL TRENDS */}
         <section>
           <h2 className="text-xl font-semibold mb-4">Historical Trends</h2>
-          <AnnualTrendsChart data={annualSnapshots ?? []} />
+          <AnnualTrendsChart data={historicalData} />
         </section>
 
         {/* MONTHLY MOMENTUM */}
@@ -121,7 +127,7 @@ export default async function DashboardPage() {
         {/* PLAYER RETENTION */}
         <section>
           <h2 className="text-xl font-semibold mb-4">Player Retention</h2>
-          <RetentionChart data={annualSnapshots ?? []} />
+          <RetentionChart data={historicalData} />
         </section>
 
         {/* DEMOGRAPHICS + GEOGRAPHY side by side */}

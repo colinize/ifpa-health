@@ -17,11 +17,12 @@ export async function runHealthScorer(): Promise<{
   const currentYear = new Date().getFullYear()
   let records = 0
 
-  // ---- 1. Get latest annual snapshot for the most recent year ---------------
+  // ---- 1. Get latest COMPLETE year (not current partial year) ---------------
 
   const { data: annualRow } = await supabase
     .from('annual_snapshots')
     .select('*')
+    .lt('year', currentYear)
     .order('year', { ascending: false })
     .limit(1)
     .single()

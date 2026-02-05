@@ -470,10 +470,12 @@ async function main() {
     // =====================================================================
     console.log('[7/7] Computing initial health score and forecast...')
 
-    // Re-read the data we just inserted to compute the health score
+    // Re-read the last COMPLETE year (not current partial year) for the health score
+    const currentYear = new Date().getFullYear()
     const { data: latestAnnual } = await supabase
       .from('annual_snapshots')
       .select('*')
+      .lt('year', currentYear)
       .order('year', { ascending: false })
       .limit(1)
       .single()

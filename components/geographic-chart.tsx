@@ -34,8 +34,7 @@ export function GeographicChart({ data }: GeographicChartProps) {
   const top10 = [...data]
     .sort((a, b) => b.active_players - a.active_players)
     .slice(0, 10)
-    // Reverse so largest is at top in horizontal layout
-    .reverse()
+    // In vertical layout BarChart, first item renders at top — keep descending
 
   // Calculate widest country name for YAxis width
   const maxLabelLength = Math.max(...top10.map((d) => d.country_name.length))
