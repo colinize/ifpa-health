@@ -120,7 +120,7 @@ export default async function DashboardPage() {
         {forecast && forecast.months_of_data >= 2 && (
           <section>
             <h2 className="text-xl font-semibold mb-4">{forecast.target_year} Forecast</h2>
-            <ForecastChart forecast={forecast} annualData={annualSnapshots ?? []} />
+            <ForecastChart forecast={forecast} annualData={historicalData} />
           </section>
         )}
 

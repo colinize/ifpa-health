@@ -7,9 +7,9 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   Cell,
+  ReferenceLine,
 } from 'recharts'
 import { Card, CardContent } from '@/components/ui/card'
 
@@ -24,71 +24,44 @@ interface MonthlyComparisonChartProps {
 
 const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-interface TransformedMonth {
+interface ChartPoint {
   month: string
-  currentYear: number
-  priorYear: number
-  yoyPct: number | null
+  yoyPct: number
+  count: number
+  priorCount: number
 }
 
-function transformData(data: MonthlyComparisonChartProps['data']): TransformedMonth[] {
+function transformData(data: MonthlyComparisonChartProps['data']): ChartPoint[] {
   if (!data || data.length === 0) return []
 
-  const currentYear = Math.max(...data.map((d) => d.year))
-  const priorYear = currentYear - 1
+  // Build a map of year+month → event_count
+  const byYearMonth = new Map<string, number>()
+  for (const d of data) {
+    byYearMonth.set(`${d.year}-${d.month}`, d.event_count)
+  }
 
-  const currentMap = new Map<number, number>()
-  const priorMap = new Map<number, number>()
-  const yoyMap = new Map<number, number | null>()
+  // Get the most recent 12 months that have data
+  const allYears = [...new Set(data.map((d) => d.year))].sort()
+  const maxYear = allYears[allYears.length - 1]
+
+  // Find months with YoY data — look for months that have both current and prior year
+  const result: ChartPoint[] = []
 
   for (const d of data) {
-    if (d.year === currentYear) {
-      currentMap.set(d.month, d.event_count)
-      yoyMap.set(d.month, d.yoy_change_pct)
-    } else if (d.year === priorYear) {
-      priorMap.set(d.month, d.event_count)
-    }
+    if (d.yoy_change_pct == null) continue
+    const priorCount = byYearMonth.get(`${d.year - 1}-${d.month}`)
+    if (priorCount == null) continue
+
+    result.push({
+      month: `${monthLabels[d.month - 1]} ${d.year}`,
+      yoyPct: d.yoy_change_pct,
+      count: d.event_count,
+      priorCount,
+    })
   }
 
-  const result: TransformedMonth[] = []
-  for (let m = 1; m <= 12; m++) {
-    const cur = currentMap.get(m)
-    const prior = priorMap.get(m)
-    // Only include months that have data in either year
-    if (cur != null || prior != null) {
-      result.push({
-        month: monthLabels[m - 1],
-        currentYear: cur ?? 0,
-        priorYear: prior ?? 0,
-        yoyPct: yoyMap.get(m) ?? null,
-      })
-    }
-  }
-
-  return result
-}
-
-function YoYLabel(props: { x?: number; y?: number; width?: number; value?: number; index?: number; chartData?: TransformedMonth[] }) {
-  const { x = 0, y = 0, width = 0, index = 0, chartData = [] } = props
-  const item = chartData[index]
-  if (!item || item.yoyPct == null) return null
-
-  const pct = item.yoyPct
-  const color = pct >= 0 ? '#22c55e' : '#ef4444'
-  const sign = pct >= 0 ? '+' : ''
-
-  return (
-    <text
-      x={x + width / 2}
-      y={y - 6}
-      textAnchor="middle"
-      fill={color}
-      fontSize={11}
-      fontWeight={600}
-    >
-      {sign}{Math.round(pct)}%
-    </text>
-  )
+  // Show last 12 months with YoY data
+  return result.slice(-12)
 }
 
 export function MonthlyComparisonChart({ data }: MonthlyComparisonChartProps) {
@@ -104,26 +77,28 @@ export function MonthlyComparisonChart({ data }: MonthlyComparisonChartProps) {
     )
   }
 
-  const currentYear = Math.max(...data.map((d) => d.year))
-  const priorYear = currentYear - 1
-
   return (
     <Card>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={350}>
-          <BarChart data={chartData} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+      <CardContent className="space-y-2">
+        <p className="text-sm text-muted-foreground">Year-over-year change in monthly event counts</p>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
             <XAxis
               dataKey="month"
               tickLine={false}
               axisLine={false}
               className="text-xs fill-muted-foreground"
+              interval={0}
+              angle={-45}
+              textAnchor="end"
+              height={50}
             />
             <YAxis
               tickLine={false}
               axisLine={false}
               className="text-xs fill-muted-foreground"
-              tickFormatter={(v: number) => v.toLocaleString()}
+              tickFormatter={(v: number) => `${v > 0 ? '+' : ''}${v}%`}
             />
             <Tooltip
               contentStyle={{
@@ -132,26 +107,24 @@ export function MonthlyComparisonChart({ data }: MonthlyComparisonChartProps) {
                 borderRadius: '8px',
                 fontSize: '13px',
               }}
-              labelStyle={{ fontWeight: 600 }}
-              formatter={(value: number, name: string) => [
-                value.toLocaleString(),
-                name,
-              ]}
+              formatter={(_value: any, _name: string, props: any) => {
+                const d = props.payload as ChartPoint
+                return [
+                  `${d.yoyPct > 0 ? '+' : ''}${d.yoyPct.toFixed(1)}% (${d.count.toLocaleString()} vs ${d.priorCount.toLocaleString()})`,
+                  'YoY Change',
+                ]
+              }}
             />
-            <Legend />
-            <Bar
-              dataKey="priorYear"
-              name={String(priorYear)}
-              fill="#6b7280"
-              radius={[2, 2, 0, 0]}
-            />
-            <Bar
-              dataKey="currentYear"
-              name={String(currentYear)}
-              fill="#3b82f6"
-              radius={[2, 2, 0, 0]}
-              label={<YoYLabel chartData={chartData} />}
-            />
+            <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeOpacity={0.5} />
+            <Bar dataKey="yoyPct" radius={[3, 3, 0, 0]}>
+              {chartData.map((entry, index) => (
+                <Cell
+                  key={index}
+                  fill={entry.yoyPct >= 0 ? '#22c55e' : '#ef4444'}
+                  fillOpacity={0.8}
+                />
+              ))}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

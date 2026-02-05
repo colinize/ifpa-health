@@ -1,16 +1,5 @@
 'use client'
 
-import {
-  ComposedChart,
-  Area,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
@@ -23,22 +12,14 @@ interface ForecastChartProps {
     ci_68_high_tournaments: number
     ci_95_low_tournaments: number
     ci_95_high_tournaments: number
+    ytd_actual_tournaments?: number
     trend_reference: { projected_value: number } | null
   }
   annualData: Array<{ year: number; tournaments: number }>
 }
 
-interface ChartDataPoint {
-  year: number
-  actual: number | null
-  projected: number | null
-  ci68: [number, number] | null
-  ci95: [number, number] | null
-  trendRef: number | null
-}
-
 export function ForecastChart({ forecast, annualData }: ForecastChartProps) {
-  if (!forecast || !annualData || annualData.length === 0) {
+  if (!forecast) {
     return (
       <Card>
         <CardContent>
@@ -48,151 +29,72 @@ export function ForecastChart({ forecast, annualData }: ForecastChartProps) {
     )
   }
 
-  // Use last 5 years of historical data
-  const recentYears = annualData
+  const projected = forecast.projected_tournaments
+  const ci68Low = forecast.ci_68_low_tournaments
+  const ci68High = forecast.ci_68_high_tournaments
+
+  // Get last year's actual for comparison
+  const lastYear = annualData
     .filter((d) => d.year < forecast.target_year)
-    .slice(-5)
+    .sort((a, b) => b.year - a.year)[0]
 
-  const chartData: ChartDataPoint[] = [
-    ...recentYears.map((d) => ({
-      year: d.year,
-      actual: d.tournaments,
-      projected: null,
-      ci68: null,
-      ci95: null,
-      trendRef: null,
-    })),
-    {
-      year: forecast.target_year,
-      actual: null,
-      projected: forecast.projected_tournaments,
-      ci68: [forecast.ci_68_low_tournaments, forecast.ci_68_high_tournaments],
-      ci95: [forecast.ci_95_low_tournaments, forecast.ci_95_high_tournaments],
-      trendRef: forecast.trend_reference?.projected_value ?? null,
-    },
-  ]
+  const lastYearTournaments = lastYear?.tournaments
+  const vsLastYear = lastYearTournaments
+    ? ((projected - lastYearTournaments) / lastYearTournaments) * 100
+    : null
 
-  // For the area bands, we need flat values for Recharts
-  const flatData = chartData.map((d) => ({
-    year: d.year,
-    actual: d.actual,
-    projected: d.projected,
-    ci68Low: d.ci68?.[0] ?? null,
-    ci68High: d.ci68?.[1] ?? null,
-    ci95Low: d.ci95?.[0] ?? null,
-    ci95High: d.ci95?.[1] ?? null,
-    trendRef: d.trendRef,
-  }))
+  // YTD progress
+  const ytdActual = forecast.ytd_actual_tournaments
+  const progressPct = ytdActual && projected > 0 ? (ytdActual / projected) * 100 : null
 
   return (
     <Card>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4">
         <div className="flex items-center gap-2">
-          <Badge variant="secondary">Based on {forecast.months_of_data} month{forecast.months_of_data !== 1 ? 's' : ''} of data</Badge>
+          <Badge variant="secondary">
+            Based on {forecast.months_of_data} month{forecast.months_of_data !== 1 ? 's' : ''} of data
+          </Badge>
+          {forecast.months_of_data <= 3 && (
+            <span className="text-xs text-muted-foreground">Early estimate, wide range expected</span>
+          )}
         </div>
-        <ResponsiveContainer width="100%" height={350}>
-          <ComposedChart data={flatData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis
-              dataKey="year"
-              tickLine={false}
-              axisLine={false}
-              className="text-xs fill-muted-foreground"
-            />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              className="text-xs fill-muted-foreground"
-              tickFormatter={(v: number) => v.toLocaleString()}
-              domain={['auto', 'auto']}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-                fontSize: '13px',
-              }}
-              labelStyle={{ fontWeight: 600 }}
-              formatter={(value: any, name: string) => {
-                if (value == null) return ['N/A', name]
-                return [Math.round(Number(value)).toLocaleString(), name]
-              }}
-            />
-            <Legend />
-            {/* 95% CI band */}
-            <Area
-              dataKey="ci95High"
-              name="95% CI Upper"
-              stroke="none"
-              fill="#06b6d4"
-              fillOpacity={0.1}
-              connectNulls={false}
-              legendType="none"
-            />
-            <Area
-              dataKey="ci95Low"
-              name="95% CI Lower"
-              stroke="none"
-              fill="#ffffff"
-              fillOpacity={0.8}
-              connectNulls={false}
-              legendType="none"
-            />
-            {/* 68% CI band */}
-            <Area
-              dataKey="ci68High"
-              name="68% CI Upper"
-              stroke="none"
-              fill="#06b6d4"
-              fillOpacity={0.2}
-              connectNulls={false}
-              legendType="none"
-            />
-            <Area
-              dataKey="ci68Low"
-              name="68% CI Lower"
-              stroke="none"
-              fill="#ffffff"
-              fillOpacity={0.8}
-              connectNulls={false}
-              legendType="none"
-            />
-            {/* Historical actual line */}
-            <Line
-              type="monotone"
-              dataKey="actual"
-              name="Actual"
-              stroke="#3b82f6"
-              strokeWidth={2}
-              dot={{ r: 4, fill: '#3b82f6' }}
-              activeDot={{ r: 6 }}
-              connectNulls={false}
-            />
-            {/* Projected point */}
-            <Line
-              type="monotone"
-              dataKey="projected"
-              name="Projected"
-              stroke="#06b6d4"
-              strokeWidth={2}
-              strokeDasharray="5 5"
-              dot={{ r: 6, fill: '#06b6d4', strokeWidth: 2 }}
-              connectNulls={false}
-            />
-            {/* Trend reference */}
-            <Line
-              type="monotone"
-              dataKey="trendRef"
-              name="Trend Reference"
-              stroke="#6b7280"
-              strokeWidth={1.5}
-              strokeDasharray="4 4"
-              dot={{ r: 4, fill: '#6b7280' }}
-              connectNulls={false}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
+
+        {/* Main projection */}
+        <div className="text-center py-4">
+          <p className="text-sm text-muted-foreground mb-1">Projected {forecast.target_year} Tournaments</p>
+          <p className="text-4xl font-bold tracking-tight">{Math.round(projected).toLocaleString()}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Range: {Math.round(ci68Low).toLocaleString()} &ndash; {Math.round(ci68High).toLocaleString()}
+          </p>
+        </div>
+
+        {/* Comparison to last year */}
+        {vsLastYear != null && lastYearTournaments && (
+          <div className="flex items-center justify-center gap-4 text-sm">
+            <span className="text-muted-foreground">
+              {lastYear.year}: {lastYearTournaments.toLocaleString()}
+            </span>
+            <span className={vsLastYear >= 0 ? 'text-green-500 font-medium' : 'text-red-500 font-medium'}>
+              {vsLastYear >= 0 ? '+' : ''}{vsLastYear.toFixed(1)}% projected change
+            </span>
+          </div>
+        )}
+
+        {/* YTD progress bar */}
+        {ytdActual != null && progressPct != null && (
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>YTD: {ytdActual.toLocaleString()} tournaments</span>
+              <span>{progressPct.toFixed(1)}% of projection</span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full bg-blue-500 transition-all duration-500"
+                style={{ width: `${Math.min(100, progressPct)}%` }}
+              />
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )
