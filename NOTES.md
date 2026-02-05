@@ -71,6 +71,18 @@
 - **66.5 (Healthy)** — much more accurate than 48.9
 - Growth 75 (+10.2% avg YoY), Attendance 82, Retention 85, Momentum 45, Diversity 30, Youth 44
 
+### Session 4 (Feb 5, 2026) — UX Clarity Pass
+
+#### Redesigned 3 components for clarity
+- **Monthly Momentum**: Replaced confusing side-by-side year bar chart (mostly empty with only 2 months of 2026 data) with YoY change bars — green = growth, red = decline, last 12 months
+- **Forecast**: Replaced broken CI-band Recharts chart with clean text card — big projected number, range, comparison to prior year, early-estimate disclaimer
+- **Health Score Breakdown**: Replaced 6 dense progress bars (weight %, sensitivity arrows, scores) with 2x3 grid of simple tiles — icon, name, rating (Strong/Good/Fair/Weak), key metric value
+
+#### Terminology consistency
+- Audited all user-facing text for tournament vs event consistency
+- Fixed 7 instances: "event" → "tournament" in health breakdown, monthly momentum subtitle, methodology panel
+- WPPR "Events" column left as-is (correct IFPA term for player event count)
+
 ### Next steps
 - Mobile responsive testing
 - Monitor cron jobs running correctly
