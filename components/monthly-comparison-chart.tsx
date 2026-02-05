@@ -80,7 +80,7 @@ export function MonthlyComparisonChart({ data }: MonthlyComparisonChartProps) {
   return (
     <Card>
       <CardContent className="space-y-2">
-        <p className="text-sm text-muted-foreground">Year-over-year change in monthly event counts</p>
+        <p className="text-sm text-muted-foreground">Year-over-year change in monthly tournament counts</p>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />

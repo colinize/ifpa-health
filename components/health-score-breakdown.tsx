@@ -9,7 +9,7 @@ interface HealthScoreBreakdownProps {
 
 const componentConfig: Record<string, { icon: string; format: (v: number) => string }> = {
   growth: { icon: '📈', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}% YoY` },
-  attendance: { icon: '👥', format: (v) => `${v.toFixed(1)} avg/event` },
+  attendance: { icon: '👥', format: (v) => `${v.toFixed(1)} avg/tournament` },
   retention: { icon: '🔄', format: (v) => `${v.toFixed(0)}% return rate` },
   momentum: { icon: '⚡', format: (v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}% recent` },
   diversity: { icon: '🌍', format: (v) => `${v.toFixed(0)} index` },

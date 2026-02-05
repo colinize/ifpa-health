@@ -44,7 +44,7 @@ export function MethodologyPanel() {
                     <tr className="border-b">
                       <td className="py-2 pr-4 font-medium text-foreground">Attendance</td>
                       <td className="py-2 pr-4 text-right tabular-nums">20%</td>
-                      <td className="py-2">Average players per tournament event</td>
+                      <td className="py-2">Average players per tournament</td>
                     </tr>
                     <tr className="border-b">
                       <td className="py-2 pr-4 font-medium text-foreground">Retention</td>
@@ -54,7 +54,7 @@ export function MethodologyPanel() {
                     <tr className="border-b">
                       <td className="py-2 pr-4 font-medium text-foreground">Momentum</td>
                       <td className="py-2 pr-4 text-right tabular-nums">15%</td>
-                      <td className="py-2">Average of last 3 months' event count YoY % change</td>
+                      <td className="py-2">Average of last 3 months' tournament count YoY % change</td>
                     </tr>
                     <tr className="border-b">
                       <td className="py-2 pr-4 font-medium text-foreground">Geographic Diversity</td>
@@ -78,7 +78,7 @@ export function MethodologyPanel() {
                 <li className="flex items-start gap-2">
                   <Badge variant="default" className="mt-0.5 shrink-0 bg-emerald-600 hover:bg-emerald-600">High</Badge>
                   <span>
-                    <strong className="text-foreground">Tournament &amp; event data</strong> - IFPA API calendar and results endpoints.
+                    <strong className="text-foreground">Tournament data</strong> - IFPA API stats endpoints.
                     Direct counts with full historical coverage.
                   </span>
                 </li>
@@ -114,7 +114,7 @@ export function MethodologyPanel() {
                   <Badge variant="outline" className="mt-0.5 shrink-0">Derived</Badge>
                   <span>
                     <strong className="text-foreground">Forecast projections</strong> - Linear extrapolation from year-to-date
-                    monthly event counts, adjusted for seasonal patterns.
+                    monthly tournament counts, adjusted for seasonal patterns.
                   </span>
                 </li>
               </ul>
@@ -124,10 +124,10 @@ export function MethodologyPanel() {
             <div>
               <h3 className="font-semibold text-foreground mb-2">Known Limitations</h3>
               <ul className="list-disc list-inside space-y-1">
-                <li>IFPA data only covers sanctioned events; unsanctioned leagues and casual play are not tracked.</li>
+                <li>IFPA data only covers sanctioned tournaments; unsanctioned leagues and casual play are not tracked.</li>
                 <li>Player age demographics rely on self-reported data and may be incomplete.</li>
                 <li>Retention calculations use a year-over-year window and may miss players who skip a year and return.</li>
-                <li>Geographic data reflects IFPA-registered events, which skew heavily toward the United States.</li>
+                <li>Geographic data reflects IFPA-registered tournaments, which skew heavily toward the United States.</li>
                 <li>Forecast accuracy improves as more months of data become available in the current year.</li>
                 <li>The health score breakpoints are calibrated to historical norms and may need periodic recalibration.</li>
               </ul>
