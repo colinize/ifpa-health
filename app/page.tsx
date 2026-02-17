@@ -1,7 +1,10 @@
 import { createPublicClient } from '@/lib/supabase'
 import { generateNarrative } from '@/lib/narrative'
 import type { HealthScoreResult } from '@/lib/health-score'
+import { computeProjectedScore } from '@/lib/projected-score'
+import type { ForecastResult } from '@/lib/forecast'
 import { HealthScoreGauge } from '@/components/health-score-gauge'
+import { ProjectedGauge } from '@/components/projected-gauge'
 import { NarrativeDisplay } from '@/components/narrative-display'
 import { AnswerCard } from '@/components/answer-card'
 import { DetailDrawer } from '@/components/detail-drawer'
@@ -37,6 +40,34 @@ export default async function DashboardPage() {
   const narrative = healthScore
     ? generateNarrative(healthScore as unknown as HealthScoreResult)
     : 'No health score data available.'
+
+  // Projected 2026 score
+  const projectedScoreResult = forecast ? computeProjectedScore(
+    {
+      target_year: forecast.target_year,
+      months_of_data: forecast.months_of_data,
+      projected_tournaments: Math.round(parseFloat(String(forecast.projected_tournaments ?? 0))),
+      projected_entries: Math.round(parseFloat(String(forecast.projected_entries ?? 0))),
+      projected_players: forecast.projected_unique_players ?? 0,
+      projected_returning: forecast.projected_returning_players ?? 0,
+      ci_68_low_tournaments: Math.round(parseFloat(String(forecast.ci_68_low_tournaments ?? 0))),
+      ci_68_high_tournaments: Math.round(parseFloat(String(forecast.ci_68_high_tournaments ?? 0))),
+      ci_95_low_tournaments: Math.round(parseFloat(String(forecast.ci_95_low_tournaments ?? 0))),
+      ci_95_high_tournaments: Math.round(parseFloat(String(forecast.ci_95_high_tournaments ?? 0))),
+      ci_68_low_entries: Math.round(parseFloat(String(forecast.ci_68_low_entries ?? 0))),
+      ci_68_high_entries: Math.round(parseFloat(String(forecast.ci_68_high_entries ?? 0))),
+      ci_95_low_entries: Math.round(parseFloat(String(forecast.ci_95_low_entries ?? 0))),
+      ci_95_high_entries: Math.round(parseFloat(String(forecast.ci_95_high_entries ?? 0))),
+      ci_68_low_players: forecast.ci_68_low_players ?? 0,
+      ci_68_high_players: forecast.ci_68_high_players ?? 0,
+      ci_68_low_returning: forecast.ci_68_low_returning ?? 0,
+      ci_68_high_returning: forecast.ci_68_high_returning ?? 0,
+      method: 'seasonal_ratio',
+      trend_reference: null,
+    } as ForecastResult,
+    latestYear?.unique_players ?? 0,
+    latestYear?.tournaments ?? 0,
+  ) : null
 
   // Answer card 1: Players
   const playerYoyPct = latestYear && priorYear && priorYear.unique_players > 0
@@ -89,6 +120,15 @@ export default async function DashboardPage() {
         {/* HEALTH SCORE + NARRATIVE */}
         <section className="flex flex-col items-center gap-4">
           <HealthScoreGauge score={healthScore?.composite_score ?? 0} band={healthScore?.band ?? 'stable'} />
+          {projectedScoreResult && (
+            <ProjectedGauge
+              score={projectedScoreResult.projected_score}
+              band={projectedScoreResult.projected_band}
+              ciLow={projectedScoreResult.ci_low_score}
+              ciHigh={projectedScoreResult.ci_high_score}
+              year={forecast!.target_year}
+            />
+          )}
           <NarrativeDisplay text={narrative} />
         </section>
 
