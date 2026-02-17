@@ -36,6 +36,9 @@ export default async function DashboardPage() {
   const latestYear = completeYears[completeYears.length - 1]
   const priorYear = completeYears[completeYears.length - 2]
 
+  // Current (incomplete) year actuals for the YoY table projected row
+  const currentYearRow = annualSnapshots?.find(s => s.year === currentYear)
+
   // Generate narrative
   const narrative = healthScore
     ? generateNarrative(healthScore as unknown as HealthScoreResult)
@@ -140,6 +143,11 @@ export default async function DashboardPage() {
 
         {/* THREE ANSWER CARDS */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {latestYear && (
+            <p className="col-span-full text-xs text-muted-foreground text-center -mb-2">
+              {latestYear.year} full-year totals
+            </p>
+          )}
           <AnswerCard
             question="Are more people playing?"
             value={latestYear?.unique_players?.toLocaleString() ?? '\u2014'}
@@ -167,6 +175,7 @@ export default async function DashboardPage() {
         forecast={forecast ? {
           target_year: forecast.target_year,
           projected_tournaments: Math.round(parseFloat(String(forecast.projected_tournaments))),
+          projected_entries: Math.round(parseFloat(String(forecast.projected_entries))),
           ci_68_low_tournaments: Math.round(parseFloat(String(forecast.ci_68_low_tournaments))),
           ci_68_high_tournaments: Math.round(parseFloat(String(forecast.ci_68_high_tournaments))),
           months_of_data: forecast.months_of_data,
@@ -184,6 +193,11 @@ export default async function DashboardPage() {
           yoy_change_pct: m.yoy_change_pct != null ? parseFloat(String(m.yoy_change_pct)) : null,
         }))}
         priorYearTournaments={latestYear?.tournaments ?? null}
+        currentYearActuals={currentYearRow ? {
+          year: currentYearRow.year,
+          ytd_tournaments: currentYearRow.tournaments,
+          ytd_entries: currentYearRow.player_entries,
+        } : null}
       />
 
       {/* FOOTER */}

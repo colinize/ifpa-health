@@ -9,6 +9,7 @@ interface DetailDrawerProps {
   forecast: {
     target_year: number
     projected_tournaments: number
+    projected_entries: number
     ci_68_low_tournaments: number
     ci_68_high_tournaments: number
     months_of_data: number
@@ -26,6 +27,11 @@ interface DetailDrawerProps {
     yoy_change_pct: number | null
   }>
   priorYearTournaments: number | null
+  currentYearActuals: {
+    year: number
+    ytd_tournaments: number
+    ytd_entries: number
+  } | null
 }
 
 const STORAGE_KEY = 'detail-drawer-open'
@@ -35,6 +41,7 @@ export function DetailDrawer({
   annualData,
   monthlyData,
   priorYearTournaments,
+  currentYearActuals,
 }: DetailDrawerProps) {
   const detailsRef = useRef<HTMLDetailsElement>(null)
   const [isOpen, setIsOpen] = useState(false)
@@ -120,7 +127,19 @@ export function DetailDrawer({
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
             Year-over-Year
           </h3>
-          <YearTable data={annualData} />
+          <YearTable
+            data={annualData}
+            projected={showForecast && currentYearActuals ? {
+              year: forecast.target_year,
+              ytd_tournaments: currentYearActuals.ytd_tournaments,
+              projected_tournaments: forecast.projected_tournaments,
+              ci_low_tournaments: forecast.ci_68_low_tournaments,
+              ci_high_tournaments: forecast.ci_68_high_tournaments,
+              ytd_entries: currentYearActuals.ytd_entries,
+              projected_entries: forecast.projected_entries,
+              months_of_data: forecast.months_of_data,
+            } : null}
+          />
         </div>
 
         {/* Methodology note */}
