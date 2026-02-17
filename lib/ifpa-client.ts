@@ -31,7 +31,7 @@ export interface EventsByYearEntry {
 
 export interface PlayersByYearEntry {
   year: string
-  current_year_count: string
+  count: string
   previous_year_count: string
   previous_2_year_count: string
   stats_rank: number

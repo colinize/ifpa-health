@@ -28,13 +28,15 @@ export async function runForecaster(): Promise<{
 
   const { data: annualRows } = await supabase
     .from('annual_snapshots')
-    .select('year, tournaments, player_entries')
+    .select('year, tournaments, player_entries, unique_players, returning_players')
     .order('year', { ascending: true })
 
   const annualData: AnnualData[] = (annualRows ?? []).map((r) => ({
     year: r.year,
     tournaments: r.tournaments,
     entries: r.player_entries,
+    unique_players: r.unique_players ?? 0,
+    returning_players: r.returning_players ?? 0,
   }))
 
   if (annualData.length === 0) {
@@ -85,6 +87,14 @@ export async function runForecaster(): Promise<{
     }
   }
 
+  let ytdPlayers = 0
+  let ytdReturning = 0
+
+  if (currentYearAnnual) {
+    ytdPlayers = currentYearAnnual.unique_players
+    ytdReturning = currentYearAnnual.returning_players
+  }
+
   // ---- 4. Compute monthly weights ------------------------------------------
 
   const monthlyWeights = computeMonthlyWeights(annualData, monthlyData, REFERENCE_YEARS)
@@ -94,6 +104,8 @@ export async function runForecaster(): Promise<{
   const forecast = computeForecast(
     ytdTournaments,
     ytdEntries,
+    ytdPlayers,
+    ytdReturning,
     completedMonths,
     monthlyWeights,
     annualData,
@@ -125,6 +137,12 @@ export async function runForecaster(): Promise<{
         ci_68_high_entries: forecast.ci_68_high_entries,
         ci_95_low_entries: forecast.ci_95_low_entries,
         ci_95_high_entries: forecast.ci_95_high_entries,
+        projected_unique_players: forecast.projected_players,
+        projected_returning_players: forecast.projected_returning,
+        ci_68_low_players: forecast.ci_68_low_players,
+        ci_68_high_players: forecast.ci_68_high_players,
+        ci_68_low_returning: forecast.ci_68_low_returning,
+        ci_68_high_returning: forecast.ci_68_high_returning,
         method: forecast.method,
         trend_reference: {
           tournaments: trendTournaments,
@@ -150,6 +168,10 @@ export async function runForecaster(): Promise<{
       ytd_entries: ytdEntries,
       projected_tournaments: forecast.projected_tournaments,
       projected_entries: forecast.projected_entries,
+      ytd_players: ytdPlayers,
+      ytd_returning: ytdReturning,
+      projected_players: forecast.projected_players,
+      projected_returning: forecast.projected_returning,
       trend_tournaments: trendTournaments.projected_value,
       trend_entries: trendEntries.projected_value,
     },
