@@ -41,8 +41,8 @@ export function generateNarrative(result: HealthScoreResult): string {
     evidence = `all three indicators are trending ${direction}`
   } else {
     const primary = formatEvidence(pillars[0])
-    const secondary = formatEvidence(pillars[1])
-    evidence = `${primary}, ${secondary.startsWith('with') ? '' : 'with '}${secondary}`
+    const secondary = formatSecondary(pillars[1])
+    evidence = `${primary}, ${secondary}`
   }
 
   return `Competitive pinball is ${trend} \u2014 ${evidence}.`
@@ -65,9 +65,36 @@ function formatEvidence(pillar: PillarEvidence): string {
         : `unique players dropped ${Math.abs(rawValue).toFixed(1)}% year over year`
 
     case 'retention':
+      if (rawValue >= 45) return `a strong ${rawValue.toFixed(0)}% player retention rate`
+      if (rawValue >= 35) return `a solid ${rawValue.toFixed(0)}% player retention rate`
+      return `retention at just ${rawValue.toFixed(0)}%`
+
+    default:
+      return `${key} at ${rawValue.toFixed(1)}`
+  }
+}
+
+// Secondary evidence is introduced with connective phrasing
+function formatSecondary(pillar: PillarEvidence): string {
+  const { key, rawValue } = pillar
+
+  switch (key) {
+    case 'tournaments':
+      if (Math.abs(rawValue) < 2) return 'with tournament count roughly flat'
+      return rawValue > 0
+        ? `with tournament count up ${rawValue.toFixed(1)}% year over year`
+        : `though tournament count dropped ${Math.abs(rawValue).toFixed(1)}%`
+
+    case 'players':
+      if (Math.abs(rawValue) < 2) return 'with unique player count roughly flat'
+      return rawValue > 0
+        ? `with unique players up ${rawValue.toFixed(1)}%`
+        : `though unique players dropped ${Math.abs(rawValue).toFixed(1)}%`
+
+    case 'retention':
       if (rawValue >= 45) return `with a strong ${rawValue.toFixed(0)}% player retention rate`
       if (rawValue >= 35) return `with a solid ${rawValue.toFixed(0)}% player retention rate`
-      return `retention has dipped to ${rawValue.toFixed(0)}%`
+      return `though retention has dipped to ${rawValue.toFixed(0)}%`
 
     default:
       return `${key} at ${rawValue.toFixed(1)}`
