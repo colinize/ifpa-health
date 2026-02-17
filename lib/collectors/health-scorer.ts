@@ -1,8 +1,7 @@
 // ---------------------------------------------------------------------------
 // Health Scorer — runs daily after data collection
-// Reads latest data from Supabase, computes the composite health score
-// using the active methodology, stores the result. Also computes shadow
-// scores for all methodology versions.
+// Reads latest complete year from annual_snapshots, computes the 3-pillar
+// health score, and stores the result.
 // ---------------------------------------------------------------------------
 
 import { computeHealthScore, type HealthScoreInput } from '@/lib/health-score'
@@ -15,129 +14,57 @@ export async function runHealthScorer(): Promise<{
   const supabase = createServiceClient()
   const today = new Date().toISOString().split('T')[0]
   const currentYear = new Date().getFullYear()
-  let records = 0
 
-  // ---- 1. Get latest COMPLETE year (not current partial year) ---------------
+  // ---- 1. Get latest two complete years from annual_snapshots ----------------
+  // We need the current and prior year to compute player YoY % change,
+  // since unique_players YoY is not stored as a generated column.
 
-  const { data: annualRow } = await supabase
+  const { data: annualRows, error: annualError } = await supabase
     .from('annual_snapshots')
-    .select('*')
+    .select('year, unique_players, retention_rate, tournament_yoy_pct')
     .lt('year', currentYear)
     .order('year', { ascending: false })
-    .limit(1)
-    .single()
+    .limit(2)
 
-  // ---- 2. Get last 3 months from monthly_event_counts for momentum ---------
-
-  const { data: recentMonths } = await supabase
-    .from('monthly_event_counts')
-    .select('year, month, yoy_change_pct')
-    .order('year', { ascending: false })
-    .order('month', { ascending: false })
-    .limit(3)
-
-  const monthlyMomentum: number[] = (recentMonths ?? [])
-    .filter((m) => m.yoy_change_pct != null)
-    .map((m) => parseFloat(String(m.yoy_change_pct)))
-
-  // ---- 3. Get latest country snapshots for diversity -----------------------
-
-  const { data: latestCountryDate } = await supabase
-    .from('country_snapshots')
-    .select('snapshot_date')
-    .order('snapshot_date', { ascending: false })
-    .limit(1)
-    .single()
-
-  let usConcentrationPct = 70 // fallback
-  let countryCount = 0
-
-  if (latestCountryDate) {
-    const { data: countryRows } = await supabase
-      .from('country_snapshots')
-      .select('country_name, pct_of_total')
-      .eq('snapshot_date', latestCountryDate.snapshot_date)
-
-    if (countryRows) {
-      countryCount = countryRows.length
-      const usRow = countryRows.find(
-        (c) =>
-          c.country_name === 'United States' ||
-          c.country_name === 'USA' ||
-          c.country_name === 'US'
-      )
-      if (usRow) {
-        usConcentrationPct = parseFloat(String(usRow.pct_of_total))
-      }
-    }
+  if (annualError) {
+    throw new Error(`Failed to fetch annual_snapshots: ${annualError.message}`)
   }
 
-  // ---- 4. Get latest overall stats snapshot for youth % --------------------
-
-  const { data: overallRow } = await supabase
-    .from('overall_stats_snapshots')
-    .select('*')
-    .order('snapshot_date', { ascending: false })
-    .limit(1)
-    .single()
-
-  // Youth % = under 18 + 18-29 age groups
-  let youthPct = 0
-  if (overallRow) {
-    const under18 = overallRow.age_under_18_pct
-      ? parseFloat(String(overallRow.age_under_18_pct))
-      : 0
-    const age18_29 = overallRow.age_18_29_pct
-      ? parseFloat(String(overallRow.age_18_29_pct))
-      : 0
-    youthPct = under18 + age18_29
+  if (!annualRows || annualRows.length === 0) {
+    throw new Error('No annual_snapshots data found for completed years')
   }
 
-  // ---- 5. Build HealthScoreInput -------------------------------------------
+  const latestYear = annualRows[0]
+  const priorYear = annualRows.length > 1 ? annualRows[1] : null
+
+  // ---- 2. Build HealthScoreInput --------------------------------------------
+
+  // Compute player YoY % change from unique_players
+  let playerYoyPct = 0
+  if (priorYear && priorYear.unique_players > 0) {
+    playerYoyPct =
+      ((latestYear.unique_players - priorYear.unique_players) /
+        priorYear.unique_players) *
+      100
+  }
 
   const input: HealthScoreInput = {
-    tournament_yoy_pct: annualRow?.tournament_yoy_pct
-      ? parseFloat(String(annualRow.tournament_yoy_pct))
+    player_yoy_pct: playerYoyPct,
+    retention_rate: latestYear.retention_rate
+      ? parseFloat(String(latestYear.retention_rate))
       : 0,
-    entry_yoy_pct: annualRow?.entry_yoy_pct
-      ? parseFloat(String(annualRow.entry_yoy_pct))
+    tournament_yoy_pct: latestYear.tournament_yoy_pct
+      ? parseFloat(String(latestYear.tournament_yoy_pct))
       : 0,
-    avg_attendance: annualRow?.avg_attendance
-      ? parseFloat(String(annualRow.avg_attendance))
-      : 0,
-    retention_rate: annualRow?.retention_rate
-      ? parseFloat(String(annualRow.retention_rate))
-      : 0,
-    monthly_momentum: monthlyMomentum,
-    us_concentration_pct: usConcentrationPct,
-    country_count: countryCount,
-    youth_pct: youthPct,
   }
 
-  // ---- 6. Get active methodology version -----------------------------------
+  // ---- 3. Compute health score (methodology v2) -----------------------------
 
-  const { data: methodology } = await supabase
-    .from('methodology_versions')
-    .select('*')
-    .eq('is_active', true)
-    .single()
+  const result = computeHealthScore(input)
 
-  const breakpointsForCompute = methodology?.breakpoints
-    ? Object.fromEntries(
-        Object.entries(methodology.breakpoints as Record<string, { points: [number, number][] }>).map(
-          ([k, v]) => [k, v.points]
-        )
-      )
-    : undefined
+  // ---- 4. Upsert into health_scores -----------------------------------------
 
-  const result = computeHealthScore(
-    input,
-    methodology?.version_number ?? 1,
-    methodology?.weights as Record<string, number> | undefined,
-    breakpointsForCompute
-  )
-
-  // ---- 7. Upsert into health_scores ---------------------------------------
+  let records = 0
 
   const { error: scoreError } = await supabase
     .from('health_scores')
@@ -147,7 +74,6 @@ export async function runHealthScorer(): Promise<{
         composite_score: result.composite_score,
         band: result.band,
         components: result.components,
-        sensitivity: result.sensitivity,
         methodology_version: result.methodology_version,
       },
       { onConflict: 'score_date' }
@@ -159,70 +85,20 @@ export async function runHealthScorer(): Promise<{
     records += 1
   }
 
-  // ---- 8. Shadow scores for ALL methodology versions -----------------------
-
-  const { data: allVersions } = await supabase
-    .from('methodology_versions')
-    .select('*')
-
-  let shadowCount = 0
-
-  for (const version of allVersions ?? []) {
-    const versionBreakpoints = version.breakpoints
-      ? Object.fromEntries(
-          Object.entries(version.breakpoints as Record<string, { points: [number, number][] }>).map(
-            ([k, v]) => [k, v.points]
-          )
-        )
-      : undefined
-
-    const shadowResult = computeHealthScore(
-      input,
-      version.version_number,
-      version.weights as Record<string, number> | undefined,
-      versionBreakpoints
-    )
-
-    const { error: shadowError } = await supabase
-      .from('shadow_scores')
-      .upsert(
-        {
-          score_date: today,
-          methodology_version: version.version_number,
-          composite_score: shadowResult.composite_score,
-          component_scores: shadowResult.components,
-        },
-        { onConflict: 'score_date,methodology_version' }
-      )
-
-    if (shadowError) {
-      console.error(
-        `Failed to upsert shadow score for v${version.version_number}:`,
-        shadowError.message
-      )
-    } else {
-      shadowCount += 1
-      records += 1
-    }
-  }
+  // ---- 5. Return results ----------------------------------------------------
 
   return {
     records_affected: records,
     details: {
       score_date: today,
+      data_year: latestYear.year,
       composite_score: result.composite_score,
       band: result.band,
       methodology_version: result.methodology_version,
-      shadow_versions_scored: shadowCount,
       input_summary: {
-        tournament_yoy_pct: input.tournament_yoy_pct,
-        entry_yoy_pct: input.entry_yoy_pct,
-        avg_attendance: input.avg_attendance,
+        player_yoy_pct: Math.round(input.player_yoy_pct * 100) / 100,
         retention_rate: input.retention_rate,
-        monthly_momentum_count: input.monthly_momentum.length,
-        us_concentration_pct: input.us_concentration_pct,
-        country_count: input.country_count,
-        youth_pct: input.youth_pct,
+        tournament_yoy_pct: input.tournament_yoy_pct,
       },
     },
   }

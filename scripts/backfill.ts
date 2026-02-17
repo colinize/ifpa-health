@@ -481,42 +481,28 @@ async function main() {
       .single()
 
     if (latestAnnual) {
-      // Get last 3 months of momentum
-      const { data: recentMonths } = await supabase
-        .from('monthly_event_counts')
-        .select('yoy_change_pct')
-        .order('year', { ascending: false })
-        .order('month', { ascending: false })
-        .limit(3)
+      // Get prior year for player YoY computation
+      const { data: priorAnnual } = await supabase
+        .from('annual_snapshots')
+        .select('unique_players')
+        .eq('year', latestAnnual.year - 1)
+        .single()
 
-      const momentum = (recentMonths ?? [])
-        .filter((m) => m.yoy_change_pct != null)
-        .map((m) => Number(m.yoy_change_pct))
-
-      // US concentration from country data
-      const usRow = countryRows.find(
-        (c) => c.country_name === 'United States' || c.country_code === 'US'
-      )
-      const usConcentrationPct = usRow ? usRow.pct_of_total : 70
-      const countryCount = countryRows.filter((c) => c.active_players > 0).length
-
-      // Youth from overall stats
-      const youthPct =
-        (ageDist?.age_under_18 ?? 0) +
-        (ageDist?.age_18_to_29 ?? 0)
-
-      const healthInput: HealthScoreInput = {
-        tournament_yoy_pct: Number(latestAnnual.tournament_yoy_pct) || 0,
-        entry_yoy_pct: Number(latestAnnual.entry_yoy_pct) || 0,
-        avg_attendance: Number(latestAnnual.avg_attendance) || 20,
-        retention_rate: Number(latestAnnual.retention_rate) || 35,
-        monthly_momentum: momentum,
-        us_concentration_pct: usConcentrationPct,
-        country_count: countryCount || 30,
-        youth_pct: youthPct || 13,
+      let playerYoyPct = 0
+      if (priorAnnual && priorAnnual.unique_players > 0) {
+        playerYoyPct =
+          ((latestAnnual.unique_players - priorAnnual.unique_players) /
+            priorAnnual.unique_players) *
+          100
       }
 
-      const healthResult = computeHealthScore(healthInput, 1)
+      const healthInput: HealthScoreInput = {
+        player_yoy_pct: playerYoyPct,
+        retention_rate: Number(latestAnnual.retention_rate) || 0,
+        tournament_yoy_pct: Number(latestAnnual.tournament_yoy_pct) || 0,
+      }
+
+      const healthResult = computeHealthScore(healthInput)
 
       const { error: healthError } = await supabase
         .from('health_scores')
@@ -526,7 +512,6 @@ async function main() {
             composite_score: healthResult.composite_score,
             band: healthResult.band,
             components: healthResult.components,
-            sensitivity: healthResult.sensitivity,
             methodology_version: healthResult.methodology_version,
           },
           { onConflict: 'score_date' }
@@ -537,25 +522,6 @@ async function main() {
       } else {
         totalRecords += 1
         console.log(`  Health score: ${healthResult.composite_score} (${healthResult.band})`)
-      }
-
-      // Also compute shadow score for version 1
-      const { error: shadowError } = await supabase
-        .from('shadow_scores')
-        .upsert(
-          {
-            score_date: today,
-            methodology_version: 1,
-            composite_score: healthResult.composite_score,
-            component_scores: healthResult.components,
-          },
-          { onConflict: 'score_date,methodology_version' }
-        )
-
-      if (shadowError) {
-        console.error('  Failed to upsert shadow score:', shadowError.message)
-      } else {
-        totalRecords += 1
       }
 
       // Compute forecast
