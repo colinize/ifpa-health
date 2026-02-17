@@ -35,6 +35,8 @@ export async function runForecaster(): Promise<{
     year: r.year,
     tournaments: r.tournaments,
     entries: r.player_entries,
+    unique_players: r.unique_players ?? 0,
+    returning_players: r.returning_players ?? 0,
   }))
 
   if (annualData.length === 0) {
@@ -94,6 +96,8 @@ export async function runForecaster(): Promise<{
   const forecast = computeForecast(
     ytdTournaments,
     ytdEntries,
+    0, // ytdPlayers — wired up in Task 4
+    0, // ytdReturning — wired up in Task 4
     completedMonths,
     monthlyWeights,
     annualData,

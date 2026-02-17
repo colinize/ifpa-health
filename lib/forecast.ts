@@ -24,6 +24,8 @@ export interface ForecastResult {
   months_of_data: number
   projected_tournaments: number
   projected_entries: number
+  projected_players: number
+  projected_returning: number
   ci_68_low_tournaments: number
   ci_68_high_tournaments: number
   ci_95_low_tournaments: number
@@ -32,6 +34,10 @@ export interface ForecastResult {
   ci_68_high_entries: number
   ci_95_low_entries: number
   ci_95_high_entries: number
+  ci_68_low_players: number
+  ci_68_high_players: number
+  ci_68_low_returning: number
+  ci_68_high_returning: number
   method: 'seasonal_ratio'
   trend_reference: TrendReference | null
 }
@@ -47,6 +53,8 @@ export interface AnnualData {
   year: number
   tournaments: number
   entries: number
+  unique_players: number
+  returning_players: number
 }
 
 export interface MonthlyData {
@@ -179,6 +187,8 @@ export function computeMonthlyWeights(
  *
  * @param ytdTournaments  Total tournaments so far in target_year
  * @param ytdEntries      Total entries so far in target_year
+ * @param ytdPlayers      Total unique players so far in target_year
+ * @param ytdReturning    Total returning players so far in target_year
  * @param completedMonths How many full months of data we have (1-12)
  * @param monthlyWeights  Output of computeMonthlyWeights
  * @param annualData      Historical annual totals (used for back-testing CI)
@@ -188,6 +198,8 @@ export function computeMonthlyWeights(
 export function computeForecast(
   ytdTournaments: number,
   ytdEntries: number,
+  ytdPlayers: number,
+  ytdReturning: number,
   completedMonths: number,
   monthlyWeights: MonthlyWeights,
   annualData: AnnualData[],
@@ -199,6 +211,8 @@ export function computeForecast(
     months_of_data: completedMonths,
     projected_tournaments: 0,
     projected_entries: 0,
+    projected_players: 0,
+    projected_returning: 0,
     ci_68_low_tournaments: 0,
     ci_68_high_tournaments: 0,
     ci_95_low_tournaments: 0,
@@ -207,6 +221,10 @@ export function computeForecast(
     ci_68_high_entries: 0,
     ci_95_low_entries: 0,
     ci_95_high_entries: 0,
+    ci_68_low_players: 0,
+    ci_68_high_players: 0,
+    ci_68_low_returning: 0,
+    ci_68_high_returning: 0,
     method: 'seasonal_ratio',
     trend_reference: null,
   }
@@ -232,6 +250,14 @@ export function computeForecast(
 
   const projectedTournaments = ytdTournaments / cumulativeTournamentWeight
   const projectedEntries = ytdEntries / cumulativeEntryWeight
+
+  // Project players and returning using tournament weights as proxy
+  const projectedPlayers = ytdPlayers > 0
+    ? Math.round(ytdPlayers / cumulativeTournamentWeight)
+    : 0
+  const projectedReturning = ytdReturning > 0
+    ? Math.round(ytdReturning / cumulativeTournamentWeight)
+    : 0
 
   // -----------------------------------------------------------------------
   // Confidence intervals via historical back-testing
@@ -289,6 +315,10 @@ export function computeForecast(
   let ci68HighEntries: number
   let ci95LowEntries: number
   let ci95HighEntries: number
+  let ci68LowPlayers: number
+  let ci68HighPlayers: number
+  let ci68LowReturning: number
+  let ci68HighReturning: number
 
   if (tournamentRatios.length >= 2) {
     // Back-test based CI: apply ratio distribution to our projection
@@ -337,6 +367,30 @@ export function computeForecast(
     ci95HighEntries = Math.round(projectedEntries * (1 + 2 * relativeUncertainty))
   }
 
+  // Player and returning CI using tournament back-test ratios as proxy
+  if (tournamentRatios.length >= 2) {
+    const ratioMean = mean(tournamentRatios)
+    const ratioStd = stddev(tournamentRatios)
+
+    ci68LowPlayers = Math.round(projectedPlayers * (ratioMean - ratioStd))
+    ci68HighPlayers = Math.round(projectedPlayers * (ratioMean + ratioStd))
+    ci68LowReturning = Math.round(projectedReturning * (ratioMean - ratioStd))
+    ci68HighReturning = Math.round(projectedReturning * (ratioMean + ratioStd))
+  } else {
+    // Fallback: same relative uncertainty as tournaments
+    const cumulativeWeightStd = Math.sqrt(
+      monthlyWeights.weight_std
+        .slice(0, completedMonths)
+        .reduce((sum, s) => sum + s * s, 0)
+    )
+    const relativeUncertainty = cumulativeWeightStd / cumulativeTournamentWeight
+
+    ci68LowPlayers = Math.round(projectedPlayers * (1 - relativeUncertainty))
+    ci68HighPlayers = Math.round(projectedPlayers * (1 + relativeUncertainty))
+    ci68LowReturning = Math.round(projectedReturning * (1 - relativeUncertainty))
+    ci68HighReturning = Math.round(projectedReturning * (1 + relativeUncertainty))
+  }
+
   // Compute trend reference for context
   const trendRef = computeTrendLine(annualData, 'tournaments', targetYear)
 
@@ -345,6 +399,8 @@ export function computeForecast(
     months_of_data: completedMonths,
     projected_tournaments: Math.round(projectedTournaments),
     projected_entries: Math.round(projectedEntries),
+    projected_players: projectedPlayers,
+    projected_returning: projectedReturning,
     ci_68_low_tournaments: ci68LowTournaments,
     ci_68_high_tournaments: ci68HighTournaments,
     ci_95_low_tournaments: ci95LowTournaments,
@@ -353,6 +409,10 @@ export function computeForecast(
     ci_68_high_entries: ci68HighEntries,
     ci_95_low_entries: ci95LowEntries,
     ci_95_high_entries: ci95HighEntries,
+    ci_68_low_players: ci68LowPlayers,
+    ci_68_high_players: ci68HighPlayers,
+    ci_68_low_returning: ci68LowReturning,
+    ci_68_high_returning: ci68HighReturning,
     method: 'seasonal_ratio',
     trend_reference: trendRef,
   }

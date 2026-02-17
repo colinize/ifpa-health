@@ -529,6 +529,8 @@ async function main() {
         year: r.year,
         tournaments: r.tournaments,
         entries: r.player_entries,
+        unique_players: r.unique_players ?? 0,
+        returning_players: r.returning_players ?? 0,
       }))
 
       const monthlyDataForForecast: MonthlyData[] = monthlyRows.map((r) => ({
@@ -561,6 +563,8 @@ async function main() {
       const forecast = computeForecast(
         ytdTournaments,
         ytdEntries,
+        0, // ytdPlayers — wired up in Task 4
+        0, // ytdReturning — wired up in Task 4
         completedMonths,
         weights,
         annualDataForForecast,
