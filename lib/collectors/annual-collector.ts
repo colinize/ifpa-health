@@ -28,7 +28,7 @@ export async function runAnnualCollection(): Promise<{
 
   for (const p of playersData.stats) {
     const year = parseInt(p.year, 10)
-    const currentYearCount = parseInt(p.current_year_count, 10)
+    const currentYearCount = parseInt(p.count, 10)
     const previousYearCount = parseInt(p.previous_year_count, 10)
     playersByYear.set(year, {
       unique_players: currentYearCount,
