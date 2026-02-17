@@ -83,7 +83,40 @@
 - Fixed 7 instances: "event" → "tournament" in health breakdown, monthly momentum subtitle, methodology panel
 - WPPR "Events" column left as-is (correct IFPA term for player event count)
 
+### Session 5 (Feb 16-17, 2026) — V2 Redesign: Narrative Pulse Check
+
+#### Design
+- Brainstormed and designed a complete v2 overhaul: single-viewport, dark-first pulse check
+- Design doc: `docs/plans/2026-02-16-v2-redesign-design.md`
+- Implementation plan: `docs/plans/2026-02-16-v2-implementation.md`
+
+#### What was done (15 tasks, subagent-driven development)
+- **Health score rewrite**: 6 arbitrary components → 3 equally-weighted pillars (players, retention, tournaments)
+  - Breakpoints: players/tournaments [-10→0, 0→50, 15→100], retention [25→0, 35→50, 50→100]
+  - New score: **83.47 (Thriving)** vs old 66.5 (Healthy)
+- **Narrative generator**: Template-based sentence engine (no AI), conditional logic, natural phrasing
+- **Simplified health scorer collector**: 229 → 105 lines, reads only annual_snapshots
+- **Dark-first CSS**: oklch colors, `.light` as opt-in variant, functional color tokens (up/down/flat)
+- **New components**: Sparkline (SVG), AnswerCard, NarrativeDisplay, MonthlyPulse, YearTable, DetailDrawer
+- **Updated gauge**: Count-up animation (800ms easeOutCubic), CSS variable band colors
+- **Page rewrite**: Single viewport layout — gauge → narrative → 3 answer cards → detail drawer
+- **Removed v1**: 10 chart components deleted, recharts uninstalled (1,340 lines removed)
+- **Mobile responsive**: 375px tested, monthly pulse 6x2 grid, tighter padding
+- **Metadata**: Updated title/OG to "IFPA Health — Competitive Pinball Pulse Check"
+
+#### Key decisions
+- 3 pillars (not 6) because diversity/youth are demographic facts, not health indicators
+- Template narrative, not AI — deterministic, fast, no API calls
+- Dark-first because numbers pop on dark backgrounds (scoreboard aesthetic)
+- Drop all Recharts in favor of tiny SVG sparklines — less library overhead, more elegant
+
+#### Technical notes
+- 21 tests (14 health-score, 7 narrative) via vitest
+- Narrative spread threshold: < 8 (not < 15 from spec) for better real-data behavior
+- Detail drawer uses native `<details>`/`<summary>` with localStorage persistence
+- Branch: `v2-redesign` (10 commits ahead of main)
+
 ### Next steps
-- Mobile responsive testing
-- Monitor cron jobs running correctly
+- Merge v2-redesign to main
+- Monitor cron job produces v2 scores correctly
 - Custom domain (optional)
