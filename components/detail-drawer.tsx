@@ -77,7 +77,7 @@ export function DetailDrawer({
         />
       </summary>
 
-      <div className="space-y-8 pb-8">
+      <div className="space-y-8 pb-8 px-4 md:px-6 max-w-4xl mx-auto">
         {/* Forecast section */}
         {showForecast && (
           <div className="space-y-2">

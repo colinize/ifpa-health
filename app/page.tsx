@@ -75,16 +75,16 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* HEADER: minimal, top bar */}
-      <header className="flex items-center justify-between px-6 py-4 max-w-4xl mx-auto w-full">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg font-semibold tracking-tight">IFPA Health</h1>
+      <header className="flex items-center justify-between px-4 md:px-6 py-4 max-w-4xl mx-auto w-full">
+        <div className="flex items-center gap-2 min-w-0">
+          <h1 className="text-lg font-semibold tracking-tight whitespace-nowrap">IFPA Health</h1>
           <DataFreshness lastRun={latestRun} />
         </div>
         <ThemeToggle />
       </header>
 
       {/* MAIN: centered content, fits viewport */}
-      <main className="flex-1 flex flex-col justify-center max-w-4xl mx-auto w-full px-6 pb-8 gap-8">
+      <main className="flex-1 flex flex-col justify-center max-w-4xl mx-auto w-full px-4 md:px-6 pb-8 gap-6 md:gap-8">
 
         {/* HEALTH SCORE + NARRATIVE */}
         <section className="flex flex-col items-center gap-4">

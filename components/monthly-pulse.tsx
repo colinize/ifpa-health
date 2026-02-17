@@ -26,11 +26,11 @@ export function MonthlyPulse({ data }: MonthlyPulseProps) {
     .slice(-12)
 
   return (
-    <div className="flex flex-row gap-1.5 justify-center flex-wrap">
+    <div className="grid grid-cols-6 md:grid-cols-12 gap-1.5 justify-items-center">
       {recent.map((d) => (
         <div key={`${d.year}-${d.month}`} className="flex flex-col items-center gap-1">
           <div
-            className={`w-7 h-7 rounded ${getCellColor(d.yoy_change_pct)}`}
+            className={`w-6 h-6 md:w-7 md:h-7 rounded ${getCellColor(d.yoy_change_pct)}`}
             title={
               d.yoy_change_pct !== null
                 ? `${d.yoy_change_pct > 0 ? '+' : ''}${d.yoy_change_pct.toFixed(1)}% YoY`
