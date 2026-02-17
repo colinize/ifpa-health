@@ -13,19 +13,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "IFPA Ecosystem Health Dashboard",
+  title: "IFPA Health — Competitive Pinball Pulse Check",
   description:
-    "Is competitive pinball growing or dying? A data-driven dashboard tracking tournament growth, player retention, and ecosystem health using IFPA data.",
+    "Is competitive pinball growing or dying? A 5-second pulse check on tournament growth, player retention, and ecosystem health using IFPA data.",
   openGraph: {
-    title: "IFPA Ecosystem Health Dashboard",
+    title: "IFPA Health — Competitive Pinball Pulse Check",
     description:
-      "Data-driven dashboard tracking competitive pinball ecosystem health.",
+      "5-second pulse check on competitive pinball ecosystem health.",
     type: "website",
-    siteName: "IFPA Health Dashboard",
+    siteName: "IFPA Health",
   },
   twitter: {
     card: "summary_large_image",
-    title: "IFPA Ecosystem Health Dashboard",
+    title: "IFPA Health — Competitive Pinball Pulse Check",
     description:
       "Is competitive pinball growing or dying? Let the data answer.",
   },
@@ -42,7 +42,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var d=document.documentElement;var c=localStorage.getItem('theme');if(c==='dark'||(!c&&window.matchMedia('(prefers-color-scheme:dark)').matches)){d.classList.add('dark')}}catch(e){}`,
+            __html: `try{var d=document.documentElement;var c=localStorage.getItem('theme');if(c==='light'){d.classList.add('light')}}catch(e){}`,
           }}
         />
       </head>
