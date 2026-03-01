@@ -24,6 +24,8 @@ interface DetailDrawerProps {
   monthlyData: Array<{
     year: number
     month: number
+    event_count: number
+    prior_year_event_count: number | null
     yoy_change_pct: number | null
   }>
   priorYearTournaments: number | null

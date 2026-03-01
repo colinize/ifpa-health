@@ -190,6 +190,8 @@ export default async function DashboardPage() {
         monthlyData={(monthlyEvents ?? []).map(m => ({
           year: m.year,
           month: m.month,
+          event_count: m.event_count,
+          prior_year_event_count: m.prior_year_event_count,
           yoy_change_pct: m.yoy_change_pct != null ? parseFloat(String(m.yoy_change_pct)) : null,
         }))}
         priorYearTournaments={latestYear?.tournaments ?? null}
