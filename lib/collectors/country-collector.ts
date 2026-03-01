@@ -19,12 +19,12 @@ export async function runCountryCollection(): Promise<{
 
   // Compute total players across all countries
   const totalPlayers = countries.reduce(
-    (sum, c) => sum + (parseInt(c.player_count, 10) || 0),
+    (sum, c) => sum + (parseInt(c.count, 10) || 0),
     0
   )
 
   const rows = countries.map((c) => {
-    const activePlayers = parseInt(c.player_count, 10) || 0
+    const activePlayers = parseInt(c.count, 10) || 0
     const pctOfTotal = totalPlayers > 0
       ? parseFloat(((activePlayers / totalPlayers) * 100).toFixed(2))
       : 0

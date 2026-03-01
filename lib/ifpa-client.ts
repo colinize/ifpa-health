@@ -40,7 +40,7 @@ export interface PlayersByYearEntry {
 export interface CountryPlayer {
   country_name: string
   country_code: string
-  player_count: string
+  count: string
   stats_rank: number
 }
 
@@ -68,7 +68,7 @@ export class IFPAClient {
   private apiKey: string
 
   constructor() {
-    this.apiKey = process.env.IFPA_API_KEY!
+    this.apiKey = (process.env.IFPA_API_KEY ?? '').trim()
   }
 
   private async fetch<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
