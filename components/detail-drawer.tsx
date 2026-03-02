@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { MonthlyPulse } from './monthly-pulse'
+import { CountryGrowth } from './country-growth'
 import { YearTable } from './year-table'
 
 interface DetailDrawerProps {
@@ -28,6 +29,15 @@ interface DetailDrawerProps {
     prior_year_event_count: number | null
     yoy_change_pct: number | null
   }>
+  countryGrowthData: Array<{
+    country_name: string
+    country_code: string
+    active_players: number
+    change: number | null
+    change_pct: number | null
+    first_snapshot: string
+    latest_snapshot: string
+  }>
   priorYearTournaments: number | null
   currentYearActuals: {
     year: number
@@ -42,6 +52,7 @@ export function DetailDrawer({
   forecast,
   annualData,
   monthlyData,
+  countryGrowthData,
   priorYearTournaments,
   currentYearActuals,
 }: DetailDrawerProps) {
@@ -123,6 +134,16 @@ export function DetailDrawer({
           </h3>
           <MonthlyPulse data={monthlyData} />
         </div>
+
+        {/* Country Growth */}
+        {countryGrowthData.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              Players by Country
+            </h3>
+            <CountryGrowth data={countryGrowthData} />
+          </div>
+        )}
 
         {/* Year-over-Year table */}
         <div className="space-y-2">

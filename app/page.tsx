@@ -22,12 +22,14 @@ export default async function DashboardPage() {
     { data: monthlyEvents },
     { data: forecast },
     { data: latestRun },
+    { data: countrySnapshots },
   ] = await Promise.all([
     supabase.from('health_scores').select('*').order('score_date', { ascending: false }).limit(1).single(),
     supabase.from('annual_snapshots').select('*').order('year', { ascending: true }),
     supabase.from('monthly_event_counts').select('*').order('year', { ascending: true }).order('month', { ascending: true }),
     supabase.from('forecasts').select('*').order('forecast_date', { ascending: false }).limit(1).single(),
     supabase.from('collection_runs').select('*').order('started_at', { ascending: false }).limit(1).single(),
+    supabase.from('country_snapshots').select('*').order('snapshot_date', { ascending: true }),
   ])
 
   // Use the last COMPLETE year for metric cards (not the current incomplete year)
@@ -103,6 +105,40 @@ export default async function DashboardPage() {
     if (value < -2) return { direction: 'down', label: `${value.toFixed(1)}% vs ${priorYear?.year ?? ''}` }
     return { direction: 'flat', label: `Flat vs ${priorYear?.year ?? ''}` }
   }
+
+  // Country growth: compare latest snapshot to earliest per country
+  const countryGrowthData = (() => {
+    if (!countrySnapshots || countrySnapshots.length === 0) return []
+
+    const byCountry = new Map<string, typeof countrySnapshots>()
+    for (const s of countrySnapshots) {
+      const list = byCountry.get(s.country_name) ?? []
+      list.push(s)
+      byCountry.set(s.country_name, list)
+    }
+
+    return Array.from(byCountry.entries())
+      .map(([name, snapshots]) => {
+        const first = snapshots[0]
+        const latest = snapshots[snapshots.length - 1]
+        const hasMultiple = snapshots.length > 1
+        const change = hasMultiple ? latest.active_players - first.active_players : null
+        const changePct = hasMultiple && first.active_players > 0
+          ? ((latest.active_players - first.active_players) / first.active_players) * 100
+          : null
+
+        return {
+          country_name: name,
+          country_code: latest.country_code ?? '',
+          active_players: latest.active_players,
+          change,
+          change_pct: changePct,
+          first_snapshot: first.snapshot_date,
+          latest_snapshot: latest.snapshot_date,
+        }
+      })
+      .sort((a, b) => b.active_players - a.active_players)
+  })()
 
   // Retention trend is in percentage points, not percent
   function getRetentionTrend(delta: number | null): { direction: 'up' | 'down' | 'flat'; label: string } {
@@ -194,6 +230,7 @@ export default async function DashboardPage() {
           prior_year_event_count: m.prior_year_event_count,
           yoy_change_pct: m.yoy_change_pct != null ? parseFloat(String(m.yoy_change_pct)) : null,
         }))}
+        countryGrowthData={countryGrowthData}
         priorYearTournaments={latestYear?.tournaments ?? null}
         currentYearActuals={currentYearRow ? {
           year: currentYearRow.year,
