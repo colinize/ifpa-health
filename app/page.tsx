@@ -41,6 +41,19 @@ export default async function DashboardPage() {
   // Current (incomplete) year actuals for the YoY table projected row
   const currentYearRow = annualSnapshots?.find(s => s.year === currentYear)
 
+  // Player lifecycle waterfall: compute flow between two most recent complete years
+  const lifecycleData = latestYear && priorYear && latestYear.returning_players > 0
+    ? {
+        priorYear: priorYear.year,
+        currentYear: latestYear.year,
+        priorTotal: priorYear.unique_players,
+        returning: latestYear.returning_players,
+        churned: priorYear.unique_players - latestYear.returning_players,
+        newPlayers: latestYear.unique_players - latestYear.returning_players,
+        currentTotal: latestYear.unique_players,
+      }
+    : null
+
   // Generate narrative
   const narrative = healthScore
     ? generateNarrative(healthScore as unknown as HealthScoreResult)
@@ -237,6 +250,7 @@ export default async function DashboardPage() {
           ytd_tournaments: currentYearRow.tournaments,
           ytd_entries: currentYearRow.player_entries,
         } : null}
+        lifecycleData={lifecycleData}
       />
 
       {/* FOOTER */}

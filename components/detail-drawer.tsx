@@ -5,6 +5,7 @@ import { ChevronDown } from 'lucide-react'
 import { MonthlyPulse } from './monthly-pulse'
 import { CountryGrowth } from './country-growth'
 import { YearTable } from './year-table'
+import { PlayerLifecycle, type PlayerLifecycleProps } from './player-lifecycle'
 
 interface DetailDrawerProps {
   forecast: {
@@ -44,6 +45,7 @@ interface DetailDrawerProps {
     ytd_tournaments: number
     ytd_entries: number
   } | null
+  lifecycleData: PlayerLifecycleProps | null
 }
 
 const STORAGE_KEY = 'detail-drawer-open'
@@ -55,6 +57,7 @@ export function DetailDrawer({
   countryGrowthData,
   priorYearTournaments,
   currentYearActuals,
+  lifecycleData,
 }: DetailDrawerProps) {
   const detailsRef = useRef<HTMLDetailsElement>(null)
   const [isOpen, setIsOpen] = useState(false)
@@ -98,6 +101,16 @@ export function DetailDrawer({
       </summary>
 
       <div className="space-y-8 pb-8 px-4 md:px-6 max-w-4xl mx-auto">
+        {/* Player Flow */}
+        {lifecycleData && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              Player Flow
+            </h3>
+            <PlayerLifecycle {...lifecycleData} />
+          </div>
+        )}
+
         {/* Forecast section */}
         {showForecast && (
           <div className="space-y-2">
