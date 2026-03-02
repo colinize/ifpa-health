@@ -40,7 +40,7 @@ export interface PlayersByYearEntry {
 export interface CountryPlayer {
   country_name: string
   country_code: string
-  count: string
+  player_count: string
   stats_rank: number
 }
 
