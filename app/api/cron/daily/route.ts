@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
+import { verifyBearer } from '@/lib/auth'
+import { sanitizeErrorMessage } from '@/lib/sanitize'
 import { runDailyCollection } from '@/lib/collectors/daily-collector'
 import { runHealthScorer } from '@/lib/collectors/health-scorer'
 import { runForecaster } from '@/lib/collectors/forecaster'
 
 export async function GET(request: NextRequest) {
-  // Verify CRON_SECRET header (Vercel cron pattern)
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Constant-time CRON_SECRET check (see lib/auth.ts).
+  if (!verifyBearer(request, 'CRON_SECRET')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -49,22 +50,22 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ status: 'success', records_affected: totalRecords })
   } catch (error) {
-    // Update collection_runs to error
+    // Log the raw error server-side for Vercel Runtime Logs (owner only);
+    // only a sanitized, length-capped string is persisted to collection_runs
+    // (anon-readable) and returned in the HTTP response (no stack traces).
+    console.error('Daily cron failed:', error)
+
+    const sanitized = sanitizeErrorMessage(error)
+
     await supabase
       .from('collection_runs')
       .update({
         status: 'error',
         completed_at: new Date().toISOString(),
-        error_message: error instanceof Error ? error.message : 'Unknown error',
+        error_message: sanitized,
       })
       .eq('id', run!.id)
 
-    return NextResponse.json(
-      {
-        error: 'Collection failed',
-        message: error instanceof Error ? error.message : 'Unknown',
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Collection failed' }, { status: 500 })
   }
 }

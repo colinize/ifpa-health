@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
+import { verifyBearer } from '@/lib/auth'
+import { sanitizeErrorMessage } from '@/lib/sanitize'
 import { runAnnualCollection } from '@/lib/collectors/annual-collector'
 import { runMonthlyCollection } from '@/lib/collectors/monthly-collector'
 import { runCountryCollection } from '@/lib/collectors/country-collector'
 
 export async function GET(request: NextRequest) {
-  // Verify CRON_SECRET header (Vercel cron pattern)
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Constant-time CRON_SECRET check (see lib/auth.ts).
+  if (!verifyBearer(request, 'CRON_SECRET')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -24,19 +25,25 @@ export async function GET(request: NextRequest) {
   // Run collectors independently so one failure doesn't block the others
   const errors: string[] = []
 
+  // Collector errors are sanitized before touching `details` or
+  // `error_message` — those surfaces are anon-readable via RLS, so raw
+  // messages could leak an `api_key=...` fragment or stray bearer token.
   const annualResult = await runAnnualCollection().catch((e: Error) => {
-    errors.push(`annual: ${e.message}`)
-    return { records_affected: 0, details: { error: e.message } }
+    const msg = sanitizeErrorMessage(e)
+    errors.push(`annual: ${msg}`)
+    return { records_affected: 0, details: { error: msg } }
   })
 
   const monthlyResult = await runMonthlyCollection().catch((e: Error) => {
-    errors.push(`monthly: ${e.message}`)
-    return { records_affected: 0, details: { error: e.message } }
+    const msg = sanitizeErrorMessage(e)
+    errors.push(`monthly: ${msg}`)
+    return { records_affected: 0, details: { error: msg } }
   })
 
   const countryResult = await runCountryCollection().catch((e: Error) => {
-    errors.push(`country: ${e.message}`)
-    return { records_affected: 0, details: { error: e.message } }
+    const msg = sanitizeErrorMessage(e)
+    errors.push(`country: ${msg}`)
+    return { records_affected: 0, details: { error: msg } }
   })
 
   const totalRecords =
@@ -52,7 +59,7 @@ export async function GET(request: NextRequest) {
       status,
       completed_at: new Date().toISOString(),
       records_affected: totalRecords,
-      error_message: errors.length > 0 ? errors.join('; ') : null,
+      error_message: errors.length > 0 ? sanitizeErrorMessage(errors.join('; ')) : null,
       details: {
         annual: annualResult.details,
         monthly: monthlyResult.details,

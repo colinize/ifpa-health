@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase'
+import { verifyBearer } from '@/lib/auth'
+import { sanitizeErrorMessage } from '@/lib/sanitize'
 
+// POST does not accept a body — the handler recomputes MAE from existing
+// rows. No validation step needed. A generic try/catch prevents Supabase
+// fetch errors from reaching the caller with column or constraint names.
 export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Admin routes currently share CRON_SECRET. Next step: add ADMIN_SECRET
+  // to Vercel env and switch this to 'ADMIN_SECRET'. See _security/02-api-surface.md.
+  if (!verifyBearer(request, 'CRON_SECRET')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  try {
   const supabase = createServiceClient()
 
   // 1. Get all observations
@@ -99,4 +106,8 @@ export async function POST(request: NextRequest) {
         : 'Insufficient shadow score data for comparison',
     observation_count: observations.length,
   })
+  } catch (err) {
+    console.error('admin/calibrate failed:', sanitizeErrorMessage(err))
+    return NextResponse.json({ error: 'Calibration failed' }, { status: 500 })
+  }
 }
