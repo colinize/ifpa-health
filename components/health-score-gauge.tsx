@@ -24,30 +24,21 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
 }
 
+/**
+ * Hero score treatment — magazine number, not a gauge. A huge DM Sans
+ * figure on the left; band label and "out of 100" in tracked small-caps
+ * on the right; a thin horizontal scale underneath with a single colored
+ * tick marking the current score. No arc.
+ */
 export function HealthScoreGauge({ score, band }: HealthScoreGaugeProps) {
   const color = bandColors[band.toLowerCase()] ?? 'var(--flat)'
   const [displayValue, setDisplayValue] = useState(0)
   const rafRef = useRef<number | null>(null)
 
-  // Semi-circle gauge geometry
-  const cx = 100
-  const cy = 100
-  const r = 80
-  // Arc from 180 degrees (left) to 0 degrees (right) — a top semi-circle
-  const circumference = Math.PI * r // half-circle circumference
   const clampedScore = Math.max(0, Math.min(100, score))
-  const progress = (clampedScore / 100) * circumference
-  const dashOffset = circumference - progress
-
-  // Arc endpoints for the semi-circle (drawn from left to right)
-  const startX = cx - r
-  const startY = cy
-  const endX = cx + r
-  const endY = cy
 
   // Count-up animation. Under `prefers-reduced-motion: reduce` the duration
-  // collapses to 0, so the first RAF frame jumps straight to the final value
-  // — no easing, no cascading setState.
+  // collapses to 0 so the first RAF frame jumps to the final value.
   useEffect(() => {
     const reduceMotion = prefersReducedMotion()
     const duration = reduceMotion ? 0 : 800 // ms
@@ -78,56 +69,66 @@ export function HealthScoreGauge({ score, band }: HealthScoreGaugeProps) {
   const ariaLabel = `Pinball health score: ${Math.round(clampedScore)} out of 100, band: ${bandLabel}`
 
   return (
-    <div className="flex flex-col items-center">
-      <svg
-        width="200"
-        height="120"
-        viewBox="0 0 200 120"
-        className="overflow-visible"
-        role="img"
-        aria-label={ariaLabel}
-      >
-        <title>{ariaLabel}</title>
-        {/* Background track */}
-        <path
-          d={`M ${startX} ${startY} A ${r} ${r} 0 0 1 ${endX} ${endY}`}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="12"
-          strokeLinecap="round"
-          className="text-muted/30"
-        />
-        {/* Progress arc */}
-        <path
-          d={`M ${startX} ${startY} A ${r} ${r} 0 0 1 ${endX} ${endY}`}
-          fill="none"
-          stroke={color}
-          strokeWidth="12"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={dashOffset}
-          className="gauge-arc"
-        />
-        {/* Score number */}
-        <text
-          x={cx}
-          y={cy - 10}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          className="fill-foreground"
-          style={{ fontSize: '44px', fontWeight: 700 }}
+    <div
+      className="flex flex-col items-start gap-5 w-full max-w-md"
+      role="img"
+      aria-label={ariaLabel}
+    >
+      {/* Hero number + band label */}
+      <div className="flex items-baseline gap-5">
+        <span
+          className="font-sans font-bold tabular-nums leading-none text-foreground"
+          style={{
+            fontSize: 'clamp(6rem, 13vw, 10.5rem)',
+            letterSpacing: '-0.045em',
+          }}
         >
           {Math.round(displayValue)}
-        </text>
-      </svg>
-      {/* Band label */}
-      <span
-        className="text-base font-bold -mt-2"
-        style={{ color }}
-        aria-hidden="true"
-      >
-        {bandLabel}
-      </span>
+        </span>
+        <div className="flex flex-col gap-1.5 pb-2">
+          <span
+            className="text-xs font-sans font-semibold uppercase tracking-[0.18em]"
+            style={{ color }}
+            aria-hidden="true"
+          >
+            {bandLabel}
+          </span>
+          <span className="text-[10px] font-sans uppercase tracking-[0.15em] text-muted-foreground">
+            out of 100
+          </span>
+        </div>
+      </div>
+
+      {/* Horizontal scale with marker */}
+      <div className="w-full">
+        <div
+          className="relative h-px bg-foreground/15"
+          aria-hidden="true"
+        >
+          {/* Quarter ticks */}
+          {[25, 50, 75].map((pct) => (
+            <span
+              key={pct}
+              className="absolute top-0 h-1.5 w-px bg-foreground/15"
+              style={{ left: `${pct}%` }}
+            />
+          ))}
+          {/* Current score marker. Position is set once (no layout-animating
+              transition on `left`); entrance uses opacity on the GPU. */}
+          <span
+            className="score-marker absolute h-3 w-[3px] -top-[6px] rounded-[1px]"
+            style={{
+              left: `${clampedScore}%`,
+              backgroundColor: color,
+              transform: 'translateX(-50%)',
+            }}
+          />
+        </div>
+        <div className="flex justify-between mt-2 text-[10px] font-sans font-medium uppercase tracking-[0.12em] text-muted-foreground tabular-nums">
+          <span>0</span>
+          <span>100</span>
+        </div>
+      </div>
     </div>
   )
 }

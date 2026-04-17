@@ -1,113 +1,117 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-
-@custom-variant light (&:is(.light *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --font-serif: var(--font-source-serif);
+  --font-sans: var(--font-dm-sans);
+
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
+
   --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
+  --color-accent-foreground: var(--accent-foreground);
   --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted-foreground: var(--muted-foreground);
   --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
+  --color-primary-foreground: var(--primary-foreground);
   --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
+  --color-popover-foreground: var(--popover-foreground);
   --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
   --color-up: var(--up);
   --color-down: var(--down);
   --color-flat: var(--flat);
+
+  --color-pink: var(--pink);
+  --color-teal: var(--teal);
+  --color-yellow: var(--yellow);
+
   --color-band-thriving: var(--band-thriving);
   --color-band-healthy: var(--band-healthy);
   --color-band-stable: var(--band-stable);
   --color-band-concerning: var(--band-concerning);
   --color-band-critical: var(--band-critical);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
 }
 
-/* Dark-first: :root is the dark theme (default) */
+/*
+ * Kineticist surface — straw background, charcoal text, no dark mode.
+ * Dark mode was default-Claude scaffolding and has been removed.
+ */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(0.13 0.005 285);
-  --foreground: oklch(0.95 0 0);
-  --card: oklch(0.18 0.005 285);
-  --card-foreground: oklch(0.95 0 0);
-  --popover: oklch(0.18 0.005 285);
-  --popover-foreground: oklch(0.95 0 0);
-  --primary: oklch(0.92 0.004 286);
-  --primary-foreground: oklch(0.21 0.006 286);
-  --secondary: oklch(0.24 0.006 286);
-  --secondary-foreground: oklch(0.95 0 0);
-  --muted: oklch(0.24 0.006 286);
-  --muted-foreground: oklch(0.6 0.015 286);
-  --accent: oklch(0.24 0.006 286);
-  --accent-foreground: oklch(0.95 0 0);
-  --destructive: oklch(0.7 0.19 25);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.55 0.016 286);
+  --radius: 0.5rem;
 
-  /* Functional colors (same in both themes) */
-  --up: oklch(0.75 0.18 155);
-  --down: oklch(0.7 0.19 25);
-  --flat: oklch(0.55 0.01 286);
+  /* Surface + ink */
+  --background: #fffce8;      /* straw */
+  --foreground: #0a0c0d;      /* near-black */
 
-  /* Gauge band colors */
-  --band-thriving: oklch(0.75 0.18 155);
-  --band-healthy: oklch(0.65 0.2 260);
-  --band-stable: oklch(0.8 0.18 85);
-  --band-concerning: oklch(0.75 0.18 50);
-  --band-critical: oklch(0.7 0.19 25);
-}
+  /* Charcoal scale (Kineticist) */
+  --charcoal-25: oklch(0.97 0.004 260);
+  --charcoal-50: oklch(0.95 0.005 260);
+  --charcoal-100: oklch(0.91 0.006 260);
+  --charcoal-200: oklch(0.84 0.008 260);
+  --charcoal-300: oklch(0.72 0.010 260);
+  --charcoal-400: oklch(0.58 0.012 260);
+  --charcoal-500: oklch(0.42 0.012 260);
+  --charcoal-600: oklch(0.30 0.010 260);
+  --charcoal-700: oklch(0.20 0.008 260);
+  --charcoal-800: oklch(0.14 0.006 260);
 
-/* Light mode: opt-in via .light class */
-.light {
-  --background: oklch(0.98 0 0);
-  --foreground: oklch(0.15 0.005 285);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.005 285);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.005 285);
-  --primary: oklch(0.21 0.006 286);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.96 0.001 286);
-  --secondary-foreground: oklch(0.21 0.006 286);
-  --muted: oklch(0.96 0.001 286);
-  --muted-foreground: oklch(0.45 0.016 286);
-  --accent: oklch(0.96 0.001 286);
-  --accent-foreground: oklch(0.21 0.006 286);
-  --destructive: oklch(0.58 0.245 27);
-  --border: oklch(0.92 0.004 286);
-  --input: oklch(0.92 0.004 286);
-  --ring: oklch(0.7 0.015 286);
+  /* Brand accents (Kineticist) */
+  --pink: #f15bb5;
+  --teal: #00f5d4;
+  --yellow: #fee440;
 
-  /* Functional colors stay the same */
-  --up: oklch(0.75 0.18 155);
-  --down: oklch(0.7 0.19 25);
-  --flat: oklch(0.55 0.01 286);
+  /* Semantic tokens mapped to the charcoal + surface system.
+     Card / popover tokens resolve to the straw surface so any stray
+     `bg-card` class keeps the content sitting on the surface with
+     no chrome. Use dividers + whitespace for structure. */
+  --card: var(--background);
+  --card-foreground: var(--foreground);
+  --popover: var(--background);
+  --popover-foreground: var(--foreground);
 
-  /* Gauge band colors stay the same */
-  --band-thriving: oklch(0.75 0.18 155);
-  --band-healthy: oklch(0.65 0.2 260);
-  --band-stable: oklch(0.8 0.18 85);
-  --band-concerning: oklch(0.75 0.18 50);
-  --band-critical: oklch(0.7 0.19 25);
+  --primary: var(--charcoal-800);
+  --primary-foreground: var(--background);
+
+  --secondary: var(--charcoal-50);
+  --secondary-foreground: var(--charcoal-800);
+
+  --muted: var(--charcoal-50);
+  --muted-foreground: var(--charcoal-500);
+
+  --accent: var(--charcoal-50);
+  --accent-foreground: var(--charcoal-800);
+
+  --destructive: var(--pink);
+
+  /* Hairline borders — dividers and whitespace, not containers. */
+  --border: oklch(0.08 0.005 260 / 0.10);
+  --input: oklch(0.08 0.005 260 / 0.15);
+  --ring: #2d62ff;
+
+  /* Functional trend tokens — readable on straw. */
+  --up: oklch(0.55 0.14 180);        /* deep teal */
+  --down: oklch(0.56 0.22 350);      /* rich pink */
+  --flat: var(--charcoal-400);
+
+  /* Gauge bands — re-tuned for light surface. */
+  --band-thriving: oklch(0.55 0.15 180);    /* deep teal */
+  --band-healthy: oklch(0.65 0.13 175);     /* mid teal */
+  --band-stable: var(--charcoal-500);
+  --band-concerning: oklch(0.70 0.16 75);   /* amber */
+  --band-critical: oklch(0.56 0.22 350);    /* pink */
 }
 
 @layer base {
@@ -119,18 +123,21 @@
   }
 }
 
-/* Gauge arc sweep (health-score-gauge). Disabled under reduced-motion. */
-.gauge-arc {
-  transition: stroke-dashoffset 0.6s ease-out;
+/* Hero score marker: opacity-only entrance, GPU-composited. No layout animation. */
+.score-marker {
+  animation: score-marker-in 600ms ease-out both;
+}
+@keyframes score-marker-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-/* Respect the user's motion preference: disable the gauge arc sweep and
-   the drawer chevron rotation. The count-up animation is guarded in JS. */
+/* Under reduced-motion: disable the drawer chevron and marker fade. */
 @media (prefers-reduced-motion: reduce) {
-  .gauge-arc {
-    transition: none;
-  }
   .chevron-rotate {
     transition: none !important;
+  }
+  .score-marker {
+    animation: none;
   }
 }

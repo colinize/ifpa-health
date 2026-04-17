@@ -7,9 +7,9 @@ interface SparklineProps {
 
 export function Sparkline({
   data,
-  color = 'var(--muted-foreground)',
-  width = 120,
-  height = 32,
+  color = 'var(--foreground)',
+  width = 96,
+  height = 28,
 }: SparklineProps) {
   if (data.length < 2) return null
 

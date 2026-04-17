@@ -105,51 +105,63 @@ export function DetailDrawer({
       ref={detailsRef}
       open={isOpen}
       onToggle={handleToggle}
-      className="border-t border-border mt-8"
+      className="border-t border-foreground/10 mt-8"
     >
-      <summary className="flex items-center justify-center gap-1.5 py-4 cursor-pointer list-none text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm [&::-webkit-details-marker]:hidden">
-        <span className="text-sm font-medium">More detail</span>
+      <summary className="max-w-6xl mx-auto w-full px-4 md:px-8 flex items-center justify-center gap-2 py-5 cursor-pointer list-none text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm [&::-webkit-details-marker]:hidden">
+        <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.18em]">More detail</span>
         <ChevronDown
-          className={`chevron-rotate h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`chevron-rotate h-3.5 w-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
           aria-hidden="true"
         />
       </summary>
 
-      <div className="space-y-8 pb-8 px-4 md:px-6 max-w-4xl mx-auto">
+      <div className="space-y-10 pb-10 px-4 md:px-8 max-w-6xl mx-auto">
         {/* Player Flow */}
         {lifecycleData && (
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            <h3 className="font-serif text-xl font-semibold text-foreground">
               Player Flow
             </h3>
             <PlayerLifecycle {...lifecycleData} />
           </div>
         )}
 
-        {/* Forecast section */}
+        {/* Forecast — prose, matching the lifecycle treatment */}
         {showForecast && (
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold">
+          <div className="space-y-3">
+            <h3 className="font-serif text-xl font-semibold text-foreground">
               {forecast.target_year} Forecast
             </h3>
-            <p className="text-3xl font-bold font-mono">
-              {forecast.projected_tournaments.toLocaleString()}
+            <p className="font-serif text-base md:text-lg leading-relaxed text-foreground/85 max-w-prose">
+              IFPA is on track for{' '}
+              <span className="font-sans tabular-nums font-semibold text-foreground">
+                ~{forecast.projected_tournaments.toLocaleString()}
+              </span>{' '}
+              tournaments in {forecast.target_year}
+              {priorYearTournaments !== null && projectedChangePct !== null && (
+                <>
+                  ,{' '}
+                  <span
+                    className={`font-sans tabular-nums ${projectedChangePct >= 0 ? 'text-up' : 'text-down'}`}
+                  >
+                    {projectedChangePct >= 0 ? 'up' : 'down'}{' '}
+                    {Math.abs(projectedChangePct).toFixed(1)}%
+                  </span>{' '}
+                  from {forecast.target_year - 1}&rsquo;s{' '}
+                  <span className="font-sans tabular-nums text-foreground">
+                    {priorYearTournaments.toLocaleString()}
+                  </span>
+                </>
+              )}
+              . Range runs{' '}
+              <span className="font-sans tabular-nums text-foreground">
+                {forecast.ci_68_low_tournaments.toLocaleString()}
+                &ndash;
+                {forecast.ci_68_high_tournaments.toLocaleString()}
+              </span>{' '}
+              at 68% confidence.
             </p>
-            <p className="text-sm text-muted-foreground">
-              Range: {forecast.ci_68_low_tournaments.toLocaleString()} &ndash;{' '}
-              {forecast.ci_68_high_tournaments.toLocaleString()}
-            </p>
-            {priorYearTournaments !== null && projectedChangePct !== null && (
-              <p className="text-sm text-muted-foreground">
-                {forecast.target_year - 1}: {priorYearTournaments.toLocaleString()}
-                {' '}
-                <span className={projectedChangePct >= 0 ? 'text-up' : 'text-down'}>
-                  {projectedChangePct >= 0 ? '+' : ''}
-                  {projectedChangePct.toFixed(1)}% projected change
-                </span>
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground/70">
+            <p className="text-[10px] font-sans uppercase tracking-[0.12em] text-muted-foreground">
               Based on {forecast.months_of_data} months of data
             </p>
           </div>
@@ -157,7 +169,7 @@ export function DetailDrawer({
 
         {/* Monthly Pulse */}
         <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          <h3 className="font-serif text-xl font-semibold text-foreground">
             Monthly Pulse
           </h3>
           <MonthlyPulse data={monthlyData} />
@@ -166,7 +178,7 @@ export function DetailDrawer({
         {/* Country Growth */}
         {countryGrowthData.length > 0 && (
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            <h3 className="font-serif text-xl font-semibold text-foreground">
               Players by Country
             </h3>
             <CountryGrowth data={countryGrowthData} />
@@ -175,7 +187,7 @@ export function DetailDrawer({
 
         {/* Year-over-Year table */}
         <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          <h3 className="font-serif text-xl font-semibold text-foreground">
             Year-over-Year
           </h3>
           <YearTable
@@ -193,9 +205,9 @@ export function DetailDrawer({
           />
         </div>
 
-        {/* Methodology note */}
-        <p className="text-xs text-muted-foreground/70 text-center">
-          Health score = equal-weighted average of player growth, retention, and tournament growth.
+        {/* Methodology note — pulled quote with left rule */}
+        <p className="font-serif italic text-sm text-muted-foreground border-l-2 border-foreground/15 pl-4 max-w-prose">
+          Health score is the equal-weighted average of player growth, retention, and tournament growth.
         </p>
       </div>
     </details>

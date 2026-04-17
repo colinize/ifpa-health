@@ -174,3 +174,71 @@ Stood up the full maintenance pipeline for this project (matching the pattern in
 #### What to verify on next session
 - Monday's weekly cron run should advance `annual_snapshots.collected_at` AND `monthly_event_counts.collected_at` past the Feb 5 backfill timestamp. If it doesn't, the upsert fix didn't take.
 - `collection_runs` for the first daily run after push should show `status='success'` — the jsonb-cast changes went through prod.
+
+### Session 7 (Apr 17, 2026) — Design rebuild: default Claude taste → Kineticist-on-brand
+
+#### What was done
+Full visual rebuild of the dashboard. The prior look (dark-first oklch, Geist fonts, shadcn primitives, three-card grid, shadcn Badge for freshness, border-l-accent tiles in the drawer) was all default Claude scaffolding. Rebuilt to inherit Kineticist's design system — straw surface, Source Serif 4 + DM Sans, no cards / no chrome, editorial register — and ran a structured critique → fix → critique loop across 5 rounds.
+
+#### Pipeline additions
+- **`.impeccable.md`** — design context for the project. Audience, brand personality, palette, typography, aesthetic direction, anti-references (all AI slop tells), accessibility, design principles. Full Kineticist inheritance, light/straw only. Drives future `/impeccable`, `/critique`, `/audit` runs.
+
+#### Visual changes (above the fold)
+- **Fonts:** Geist + Geist Mono → `Source_Serif_4` + `DM_Sans` via `next/font/google` (`display: 'swap'`). Serif on narrative + answer questions + drawer prose. Sans on everything else, with `tabular-nums` on numeric data.
+- **Palette:** Dark-first oklch neutrals → straw `#fffce8` surface + charcoal scale (oklch 0.14→0.97) + Kineticist pink/teal/yellow. Dropped `.light` variant and the inline theme-script preamble. Deleted `ThemeToggle`. Muted-foreground uses charcoal-500 for safer AA (~6.5:1 on straw).
+- **Layout:** Centered `gauge + three cards` template → asymmetric split (`grid-cols-[3fr_2fr]`). Left: gauge + projection caption + narrative. Right: three answers as divider rows.
+- **Hero:** Semicircle gauge → magazine number. `clamp(6rem, 13vw, 10.5rem)` DM Sans at `-0.045em` letter-spacing + stacked band label and "out of 100" beside it + thin horizontal scale with quarter ticks and a colored marker.
+- **Projected:** Second gauge → inline text caption under the hero.
+- **Answer cards:** `bg-card rounded-lg p-5` cards → divider rows. Italic Source Serif for the question, DM Sans semibold tabular number, trend label, inline sparkline.
+- **DataFreshness:** Shadcn `<Badge>` pill → inline dot + `formatDistanceToNow` in uppercase-tracked caps.
+- **Header:** minimal title → masthead with serif title, middot, tracked-caps tagline.
+
+#### Visual changes (drawer)
+- **MonthlyPulse:** 12 shadcn-alert tiles (`border-l-[3px] bg-muted/30`) → horizontal bar strip of 12 thin vertical bars. Height = event count, color = YoY direction. Period summary sentence with peak-month callout above; period dateline below. Each bar has `aria-label` + `role="listitem"`.
+- **CountryGrowth:** Rows with `bg-muted/40` ghost fill → flat table with hairline dividers. Change column simplified to percent-only, with absolute count in a `sr-only` span for screen readers.
+- **PlayerLifecycle:** Four-row horizontal bar chart → single prose sentence. "Started X with N players. Lost N (P% churn), gained N. Ended Y with N (±P%)." Inline DM Sans numbers with direction color, "25% churn" neutralized to muted so only the actual number reads alarming.
+- **YearTable:** Zebra-striped rows (`bg-muted/30`) → hairline dividers between rows, uppercase-tracked caps header.
+- **Forecast block:** Stacked `subhead / big number / range / delta` → single prose paragraph matching the lifecycle voice.
+- **Drawer subheads:** `text-sm font-semibold text-muted-foreground uppercase tracking-wider` → `font-serif text-xl font-semibold`. Three typographic registers earn their place: tracked caps = section labels, serif regular = drawer subheads, serif italic = editorial voice.
+- **Methodology note:** centered muted footer → left-rule pull quote.
+- **Drawer toggle:** `text-sm font-medium` → uppercase-tracked caps `[11px]` matching the masthead tagline.
+
+#### Accessibility + polish
+- **Contrast:** All `/70` / `/60` opacity captions promoted to full `text-muted-foreground`. Narrative and prose use `foreground/70–85` which lands at 12–16:1 on straw — AAA.
+- **Bar chart a11y:** `aria-label` on each bar with full month/count/YoY string; `role="list"`/`listitem` on the wrapper. Screen readers get every bar.
+- **Percent-only CountryGrowth change:** absolute count preserved via `sr-only`.
+- **Score marker animation:** was `transition: left 600ms` (layout property) → static position + CSS `@keyframes` opacity fade (GPU-composited). Reduced-motion disables.
+- **Footer link touch target:** `py-2 -my-2 inline-block` for 44px height without layout shift.
+- **Responsive:** MonthlyPulse bars use `gap-[2px] h-20` below `sm:`, `gap-[3px] h-24` above. Hero number is fluid via `clamp()`. Layout stacks cleanly on mobile.
+
+#### Cleanup
+- Deleted `components/theme-toggle.tsx` (no longer needed in light-only world).
+- Deleted `components/ui/badge.tsx` (orphaned after DataFreshness rewrite). `components/ui/` directory removed.
+- Dropped `tw-animate-css` import from `globals.css` (unused).
+- Removed `.gauge-arc` CSS class (no consumers after hero refactor).
+- Pre-paint theme `<script>` in `layout.tsx` removed.
+- Swapped `font-mono` → `font-sans tabular-nums` across 4 drawer subcomponents.
+
+#### Critique trajectory
+Nielsen health scores across rounds (24/40 baseline → 32/40 end):
+1. **24/40** — baseline. AI dashboard template, Geist fonts, shadcn palette.
+2. **28/40** — after /typeset + /colorize + /distill + /arrange + /polish.
+3. **31/40** — after /arrange (demote projected), /typeset (italic serif questions), /bolder (magazine hero).
+4. **29/40** — dropped when I accounted for the drawer's shadcn tile grid + ghost bars.
+5. **32/40** — after drawer rebuild.
+
+Final `/audit` score: **20/20** (Excellent) across accessibility, performance, responsive, theming, anti-patterns.
+
+#### Gotchas encountered / learnings
+- **`npm run dev` in background task loses cwd.** The shell that spawns a background command doesn't inherit earlier `cd`s. Next.js then tries to resolve `tailwindcss` from `~/projects/` and crashes silently-ish after printing "Ready." Always prefix the invocation with `cd ~/projects/<project> &&` or use `npx next dev` with absolute context.
+- **shadcn `Badge` variants are a low-value dependency** — a destructive pill and an outline pill is not worth a `cva` + `radix-ui` import. Inline classed spans are cleaner and more controllable.
+- **`title` as the a11y contract for charts is an anti-pattern** — inconsistent screen reader exposure, invisible on touch. `aria-label` on the interactive wrapper + `role="listitem"` is the correct replacement; keep `title` only as a sighted-user nicety.
+- **Animating `left` on a score marker triggers layout per frame.** The cleanest fix for a one-shot entrance is an opacity `@keyframes` animation on mount — GPU-composited, no layout, reduced-motion guarded with one rule.
+- **The "no cards, no chrome" Kineticist rule requires watching not just the top-level page but the drawer.** The first pass only touched the hero; the drawer kept the shadcn language (`border-l-[3px]` alert tiles, `bg-muted/40` ghost bars) which dragged the page back into dashboard territory once the drawer was open. Fixing the drawer is where the biggest typographic-register wins came from (serif drawer subheads + prose Player Lifecycle + prose Forecast block).
+- **Design critique is only as honest as the scope you look at.** Round 3 scored 31/40 because I only rated above-the-fold. Round 4 dropped back to 29 when I included the drawer. Always evaluate the full reachable UI or the score lies.
+
+#### Files touched
+`.impeccable.md` (new), `app/layout.tsx`, `app/globals.css`, `app/page.tsx`, `components/answer-card.tsx`, `components/country-growth.tsx`, `components/data-freshness.tsx`, `components/detail-drawer.tsx`, `components/health-score-gauge.tsx`, `components/monthly-pulse.tsx`, `components/narrative-display.tsx`, `components/player-lifecycle.tsx`, `components/projected-gauge.tsx`, `components/sparkline.tsx`, `components/year-table.tsx`. Deleted `components/theme-toggle.tsx`, `components/ui/badge.tsx`.
+
+#### Verified green
+`npm run sentinel` passes — typecheck clean, lint 0 errors, 40 tests, production build clean.

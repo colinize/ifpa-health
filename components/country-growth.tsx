@@ -19,62 +19,77 @@ function getChangeColor(pct: number | null): string {
   return 'text-muted-foreground'
 }
 
-function formatChange(change: number | null, pct: number | null): string {
-  if (change === null || pct === null) return '—'
-  const sign = change > 0 ? '+' : ''
-  return `${sign}${change.toLocaleString()} (${sign}${pct.toFixed(1)}%)`
+function formatPct(pct: number | null): string {
+  if (pct === null) return '—'
+  const sign = pct > 0 ? '+' : ''
+  return `${sign}${pct.toFixed(1)}%`
 }
 
+function formatAbsoluteTitle(change: number | null): string {
+  if (change === null) return ''
+  const sign = change > 0 ? '+' : ''
+  return `${sign}${change.toLocaleString()} players`
+}
+
+/**
+ * Ranked list, table-like. Hairline dividers between rows, no background
+ * bars, no chrome. The tabular numbers do the visual comparison.
+ */
 export function CountryGrowth({ data }: CountryGrowthProps) {
   if (data.length === 0) return null
 
-  // Show top 15 countries by player count
   const top = data.slice(0, 15)
   const hasGrowth = top.some(d => d.change !== null)
 
   return (
     <div className="space-y-3">
-      {/* Header row */}
-      <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 text-xs text-muted-foreground font-medium px-1">
+      {/* Header */}
+      <div
+        className={`grid ${hasGrowth ? 'grid-cols-[1fr_auto_auto]' : 'grid-cols-[1fr_auto]'} gap-x-6 pb-2 border-b border-foreground/10 text-[10px] font-sans uppercase tracking-[0.15em] text-muted-foreground`}
+      >
         <span>Country</span>
         <span className="text-right">Players</span>
-        {hasGrowth && <span className="text-right min-w-[120px]">Change</span>}
+        {hasGrowth && <span className="text-right min-w-[72px]">Change</span>}
       </div>
 
-      {/* Country rows */}
-      {top.map((d) => {
-        const barWidth = data[0].active_players > 0
-          ? Math.max(2, (d.active_players / data[0].active_players) * 100)
-          : 0
-
-        return (
-          <div key={d.country_code} className="relative">
-            {/* Background bar */}
-            <div
-              className="absolute inset-y-0 left-0 bg-muted/40 rounded-sm"
-              style={{ width: `${barWidth}%` }}
-            />
-
-            {/* Content */}
-            <div className="relative grid grid-cols-[1fr_auto_auto] gap-x-4 items-center px-2 py-1.5">
-              <span className="text-sm truncate">{d.country_name}</span>
-              <span className="text-sm font-mono font-medium text-right tabular-nums">
-                {d.active_players.toLocaleString()}
+      {/* Rows */}
+      <div className="divide-y divide-foreground/5">
+        {top.map((d) => (
+          <div
+            key={d.country_code}
+            className={`grid ${hasGrowth ? 'grid-cols-[1fr_auto_auto]' : 'grid-cols-[1fr_auto]'} gap-x-6 items-baseline py-2`}
+          >
+            <span className="font-sans text-sm truncate text-foreground">
+              {d.country_name}
+            </span>
+            <span className="font-sans tabular-nums text-sm font-medium text-right text-foreground">
+              {d.active_players.toLocaleString()}
+            </span>
+            {hasGrowth && (
+              <span
+                className={`font-sans tabular-nums text-sm text-right min-w-[72px] ${getChangeColor(d.change_pct)}`}
+                title={formatAbsoluteTitle(d.change)}
+              >
+                {formatPct(d.change_pct)}
+                {d.change !== null && (
+                  <span className="sr-only">
+                    {' '}({formatAbsoluteTitle(d.change)})
+                  </span>
+                )}
               </span>
-              {hasGrowth && (
-                <span className={`text-xs font-mono text-right tabular-nums min-w-[120px] ${getChangeColor(d.change_pct)}`}>
-                  {formatChange(d.change, d.change_pct)}
-                </span>
-              )}
-            </div>
+            )}
           </div>
-        )
-      })}
+        ))}
+      </div>
 
-      {/* Date range footnote */}
+      {/* Dateline */}
       {hasGrowth && (
-        <p className="text-xs text-muted-foreground/70 px-1">
-          Change since {new Date(top[0].first_snapshot).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        <p className="text-[10px] font-sans uppercase tracking-[0.12em] text-muted-foreground">
+          Change since{' '}
+          {new Date(top[0].first_snapshot).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+          })}
         </p>
       )}
     </div>

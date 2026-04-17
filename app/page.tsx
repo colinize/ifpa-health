@@ -14,7 +14,6 @@ import { NarrativeDisplay } from '@/components/narrative-display'
 import { AnswerCard } from '@/components/answer-card'
 import { DetailDrawer } from '@/components/detail-drawer'
 import { DataFreshness } from '@/components/data-freshness'
-import { ThemeToggle } from '@/components/theme-toggle'
 
 export const revalidate = 3600
 
@@ -167,60 +166,75 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* HEADER: minimal, top bar */}
-      <header className="flex items-center justify-between px-4 md:px-6 py-4 max-w-4xl mx-auto w-full">
-        <div className="flex items-center gap-2 min-w-0">
-          <h1 className="text-lg font-semibold tracking-tight whitespace-nowrap">IFPA Health</h1>
+      {/* HEADER: masthead */}
+      <header className="border-b border-foreground/10">
+        <div className="flex items-center justify-between px-4 md:px-8 py-4 max-w-6xl mx-auto w-full">
+          <div className="flex items-baseline gap-3 min-w-0">
+            <h1 className="font-serif text-xl font-semibold tracking-tight text-foreground whitespace-nowrap">
+              IFPA Health
+            </h1>
+            <span aria-hidden="true" className="text-foreground/20">·</span>
+            <p className="text-[11px] font-sans uppercase tracking-[0.18em] text-muted-foreground whitespace-nowrap hidden sm:block">
+              Competitive Pinball Pulse
+            </p>
+          </div>
           <DataFreshness lastRun={latestRun} isStale={isDataStale} />
         </div>
-        <ThemeToggle />
       </header>
 
-      {/* MAIN: centered content, fits viewport */}
-      <main className="flex-1 flex flex-col justify-center max-w-4xl mx-auto w-full px-4 md:px-6 pb-8 gap-6 md:gap-8">
+      {/* MAIN: asymmetric split — gauge+narrative left (3fr), answers right (2fr) */}
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 md:px-8 py-8 md:py-12">
+        <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr] gap-10 md:gap-14 items-start">
 
-        {/* HEALTH SCORE + NARRATIVE */}
-        <section className="flex flex-col items-center gap-4">
-          <HealthScoreGauge score={healthScore?.composite_score ?? 0} band={healthScore?.band ?? 'stable'} />
-          {projectedScoreResult && (
-            <ProjectedGauge
-              score={projectedScoreResult.projected_score}
-              band={projectedScoreResult.projected_band}
-              ciLow={projectedScoreResult.ci_low_score}
-              ciHigh={projectedScoreResult.ci_high_score}
-              year={forecast!.target_year}
-            />
-          )}
-          <NarrativeDisplay text={narrative} />
-        </section>
-
-        {/* THREE ANSWER CARDS */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {latestYear && (
-            <p className="col-span-full text-xs text-muted-foreground text-center -mb-2">
-              {latestYear.year} full-year totals
+          {/* LEFT: gauge + narrative */}
+          <section className="flex flex-col items-start gap-5">
+            <p className="text-[11px] font-sans uppercase tracking-[0.18em] text-muted-foreground">
+              Ecosystem health score
             </p>
-          )}
-          <AnswerCard
-            question="Are more people playing?"
-            value={latestYear?.unique_players?.toLocaleString() ?? '\u2014'}
-            trend={getTrend(playerYoyPct)}
-            sparklineData={playerSparkline}
-          />
-          <AnswerCard
-            question="Are they coming back?"
-            value={retentionRate != null ? `${retentionRate.toFixed(1)}%` : '\u2014'}
-            trend={getRetentionTrend(retentionDelta)}
-            sparklineData={retentionSparkline}
-          />
-          <AnswerCard
-            question="Is there more to compete in?"
-            value={latestYear?.tournaments?.toLocaleString() ?? '\u2014'}
-            trend={getTrend(tournamentYoyPct)}
-            sparklineData={tournamentSparkline}
-          />
-        </section>
+            <HealthScoreGauge
+              score={healthScore?.composite_score ?? 0}
+              band={healthScore?.band ?? 'stable'}
+            />
+            {projectedScoreResult && (
+              <ProjectedGauge
+                score={projectedScoreResult.projected_score}
+                band={projectedScoreResult.projected_band}
+                ciLow={projectedScoreResult.ci_low_score}
+                ciHigh={projectedScoreResult.ci_high_score}
+                year={forecast!.target_year}
+              />
+            )}
+            <NarrativeDisplay text={narrative} />
+          </section>
 
+          {/* RIGHT: answer list, stacked with hairline dividers */}
+          <aside aria-label="Headline answers" className="divide-y divide-foreground/10">
+            {latestYear && (
+              <p className="pb-3 text-[11px] font-sans uppercase tracking-[0.18em] text-muted-foreground">
+                {latestYear.year} · full-year totals
+              </p>
+            )}
+            <AnswerCard
+              question="Are more people playing?"
+              value={latestYear?.unique_players?.toLocaleString() ?? '\u2014'}
+              trend={getTrend(playerYoyPct)}
+              sparklineData={playerSparkline}
+            />
+            <AnswerCard
+              question="Are they coming back?"
+              value={retentionRate != null ? `${retentionRate.toFixed(1)}%` : '\u2014'}
+              trend={getRetentionTrend(retentionDelta)}
+              sparklineData={retentionSparkline}
+            />
+            <AnswerCard
+              question="Is there more to compete in?"
+              value={latestYear?.tournaments?.toLocaleString() ?? '\u2014'}
+              trend={getTrend(tournamentYoyPct)}
+              sparklineData={tournamentSparkline}
+            />
+          </aside>
+
+        </div>
       </main>
 
       {/* DETAIL DRAWER */}
@@ -261,8 +275,19 @@ export default async function DashboardPage() {
       />
 
       {/* FOOTER */}
-      <footer className="text-center text-xs text-muted-foreground py-4">
-        Data from <a href="https://www.ifpapinball.com" className="underline hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm" target="_blank" rel="noopener noreferrer">IFPA API</a>. Not affiliated.
+      <footer className="border-t border-foreground/10 mt-4">
+        <div className="max-w-6xl mx-auto w-full px-4 md:px-8 py-5 text-[11px] font-sans uppercase tracking-[0.15em] text-muted-foreground">
+          Data from{' '}
+          <a
+            href="https://www.ifpapinball.com"
+            className="inline-block py-2 -my-2 underline decoration-foreground/20 underline-offset-4 hover:text-foreground hover:decoration-foreground/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm transition-colors"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            IFPA API
+          </a>
+          {' '}· Not affiliated
+        </div>
       </footer>
     </div>
   )

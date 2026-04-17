@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge'
 import { formatDistanceToNow } from 'date-fns'
 
 interface DataFreshnessProps {
@@ -9,16 +8,31 @@ interface DataFreshnessProps {
   isStale: boolean
 }
 
+/**
+ * Inline label for the masthead. No pill, no card — a small dateline
+ * with a status dot. Color shifts to pink when data is stale.
+ */
 export function DataFreshness({ lastRun, isStale }: DataFreshnessProps) {
   if (!lastRun?.completed_at) {
-    return <Badge variant="outline" className="text-xs">No data collected yet</Badge>
+    return (
+      <span className="inline-flex items-center gap-2 text-[11px] font-sans uppercase tracking-[0.15em] text-muted-foreground">
+        <span
+          aria-hidden="true"
+          className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground/60"
+        />
+        No data yet
+      </span>
+    )
   }
 
   const timeAgo = formatDistanceToNow(new Date(lastRun.completed_at), { addSuffix: true })
+  const dotColor = isStale ? 'bg-down' : 'bg-up'
+  const textColor = isStale ? 'text-down' : 'text-muted-foreground'
 
   return (
-    <Badge variant={isStale ? 'destructive' : 'outline'} className="text-xs">
-      Last updated {timeAgo}
-    </Badge>
+    <span className={`inline-flex items-center gap-2 text-[11px] font-sans uppercase tracking-[0.15em] ${textColor}`}>
+      <span aria-hidden="true" className={`inline-block h-1.5 w-1.5 rounded-full ${dotColor}`} />
+      <span className="normal-case tracking-normal">Last updated {timeAgo}</span>
+    </span>
   )
 }
