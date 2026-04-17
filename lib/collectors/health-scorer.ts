@@ -7,6 +7,7 @@
 import { computeHealthScore, type HealthScoreInput } from '@/lib/health-score'
 import { createServiceClient } from '@/lib/supabase'
 import { toNum } from '@/lib/utils'
+import type { Json } from '@/lib/database.types'
 
 export async function runHealthScorer(): Promise<{
   records_affected: number
@@ -70,7 +71,9 @@ export async function runHealthScorer(): Promise<{
         score_date: today,
         composite_score: result.composite_score,
         band: result.band,
-        components: result.components,
+        // `components` is typed `Json` by generated types; `ComponentScore`
+        // lacks the index signature Json demands. Content is serializable.
+        components: result.components as unknown as Json,
         methodology_version: result.methodology_version,
       },
       { onConflict: 'score_date' }

@@ -5,6 +5,8 @@ import { sanitizeErrorMessage } from '@/lib/sanitize'
 import { runAnnualCollection } from '@/lib/collectors/annual-collector'
 import { runMonthlyCollection } from '@/lib/collectors/monthly-collector'
 import { runCountryCollection } from '@/lib/collectors/country-collector'
+import type { Json } from '@/lib/database.types'
+import type { CollectionRunDetails } from '@/lib/types'
 
 export async function GET(request: NextRequest) {
   // Constant-time CRON_SECRET check (see lib/auth.ts).
@@ -53,6 +55,14 @@ export async function GET(request: NextRequest) {
 
   const status = errors.length === 0 ? 'success' : errors.length === 3 ? 'error' : 'partial'
 
+  // `details` is typed `Json` by the Supabase generated types; our concrete
+  // collector shapes don't carry Json's index signature. Content is JSON-
+  // serializable — cast at the write boundary.
+  const details: CollectionRunDetails = {
+    annual: annualResult.details,
+    monthly: monthlyResult.details,
+    country: countryResult.details,
+  }
   await supabase
     .from('collection_runs')
     .update({
@@ -60,11 +70,7 @@ export async function GET(request: NextRequest) {
       completed_at: new Date().toISOString(),
       records_affected: totalRecords,
       error_message: errors.length > 0 ? sanitizeErrorMessage(errors.join('; ')) : null,
-      details: {
-        annual: annualResult.details,
-        monthly: monthlyResult.details,
-        country: countryResult.details,
-      },
+      details: details as unknown as Json,
     })
     .eq('id', run!.id)
 

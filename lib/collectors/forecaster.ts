@@ -12,6 +12,7 @@ import {
   type MonthlyData,
 } from '@/lib/forecast'
 import { createServiceClient } from '@/lib/supabase'
+import type { Json } from '@/lib/database.types'
 
 const REFERENCE_YEARS = [2019, 2022, 2023, 2024, 2025]
 
@@ -144,10 +145,12 @@ export async function runForecaster(): Promise<{
         ci_68_low_returning: forecast.ci_68_low_returning,
         ci_68_high_returning: forecast.ci_68_high_returning,
         method: forecast.method,
+        // `trend_reference` is typed `Json` by generated types; `TrendReference`
+        // lacks the index signature Json demands. Content is serializable.
         trend_reference: {
           tournaments: trendTournaments,
           entries: trendEntries,
-        },
+        } as unknown as Json,
       },
       { onConflict: 'forecast_date,target_year' }
     )

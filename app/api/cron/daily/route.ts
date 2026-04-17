@@ -5,6 +5,8 @@ import { sanitizeErrorMessage } from '@/lib/sanitize'
 import { runDailyCollection } from '@/lib/collectors/daily-collector'
 import { runHealthScorer } from '@/lib/collectors/health-scorer'
 import { runForecaster } from '@/lib/collectors/forecaster'
+import type { Json } from '@/lib/database.types'
+import type { CollectionRunDetails } from '@/lib/types'
 
 export async function GET(request: NextRequest) {
   // Constant-time CRON_SECRET check (see lib/auth.ts).
@@ -33,18 +35,22 @@ export async function GET(request: NextRequest) {
       healthResult.records_affected +
       forecastResult.records_affected
 
-    // Update collection_runs to success
+    // Update collection_runs to success.
+    // `details` is typed `Json` by the Supabase generated types, but our
+    // concrete collector shapes don't carry the index signature Json demands.
+    // The content IS JSON-serializable — the cast is at the write boundary.
+    const details: CollectionRunDetails = {
+      daily: dailyResult.details,
+      health: healthResult.details,
+      forecast: forecastResult.details,
+    }
     await supabase
       .from('collection_runs')
       .update({
         status: 'success',
         completed_at: new Date().toISOString(),
         records_affected: totalRecords,
-        details: {
-          daily: dailyResult.details,
-          health: healthResult.details,
-          forecast: forecastResult.details,
-        },
+        details: details as unknown as Json,
       })
       .eq('id', run!.id)
 
