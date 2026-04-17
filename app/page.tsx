@@ -34,11 +34,14 @@ export default async function DashboardPage() {
       .from('annual_snapshots')
       .select('year, tournaments, player_entries, unique_players, returning_players, tournament_yoy_pct, retention_rate')
       .order('year', { ascending: true }),
+    // Last 24 months (2 years); drawer renders the most recent 12 in YoY bars.
+    // Bounded so this query never grows with time. We re-sort ascending below.
     supabase
       .from('monthly_event_counts')
       .select('year, month, event_count, prior_year_event_count, yoy_change_pct')
-      .order('year', { ascending: true })
-      .order('month', { ascending: true }),
+      .order('year', { ascending: false })
+      .order('month', { ascending: false })
+      .limit(24),
     supabase
       .from('forecasts')
       .select('target_year, months_of_data, projected_tournaments, projected_entries, projected_unique_players, projected_returning_players, ci_68_low_tournaments, ci_68_high_tournaments, ci_95_low_tournaments, ci_95_high_tournaments, ci_68_low_entries, ci_68_high_entries, ci_95_low_entries, ci_95_high_entries, ci_68_low_players, ci_68_high_players, ci_68_low_returning, ci_68_high_returning')
@@ -261,13 +264,16 @@ export default async function DashboardPage() {
           unique_players: s.unique_players,
           retention_rate: parseFloat(String(s.retention_rate ?? 0)),
         }))}
-        monthlyData={(monthlyEvents ?? []).map(m => ({
-          year: m.year,
-          month: m.month,
-          event_count: m.event_count,
-          prior_year_event_count: m.prior_year_event_count,
-          yoy_change_pct: m.yoy_change_pct != null ? parseFloat(String(m.yoy_change_pct)) : null,
-        }))}
+        monthlyData={(monthlyEvents ?? [])
+          .slice()
+          .sort((a, b) => a.year - b.year || a.month - b.month)
+          .map(m => ({
+            year: m.year,
+            month: m.month,
+            event_count: m.event_count,
+            prior_year_event_count: m.prior_year_event_count,
+            yoy_change_pct: m.yoy_change_pct != null ? parseFloat(String(m.yoy_change_pct)) : null,
+          }))}
         countryGrowthData={countryGrowthData}
         priorYearTournaments={latestYear?.tournaments ?? null}
         currentYearActuals={currentYearRow ? {
