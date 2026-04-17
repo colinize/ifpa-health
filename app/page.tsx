@@ -280,7 +280,7 @@ export default async function DashboardPage() {
 
       {/* FOOTER */}
       <footer className="text-center text-xs text-muted-foreground py-4">
-        Data from <a href="https://www.ifpapinball.com" className="underline hover:text-foreground" target="_blank" rel="noopener noreferrer">IFPA API</a>. Not affiliated.
+        Data from <a href="https://www.ifpapinball.com" className="underline hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm" target="_blank" rel="noopener noreferrer">IFPA API</a>. Not affiliated.
       </footer>
     </div>
   )

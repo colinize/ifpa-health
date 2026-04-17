@@ -118,3 +118,19 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Gauge arc sweep (health-score-gauge). Disabled under reduced-motion. */
+.gauge-arc {
+  transition: stroke-dashoffset 0.6s ease-out;
+}
+
+/* Respect the user's motion preference: disable the gauge arc sweep and
+   the drawer chevron rotation. The count-up animation is guarded in JS. */
+@media (prefers-reduced-motion: reduce) {
+  .gauge-arc {
+    transition: none;
+  }
+  .chevron-rotate {
+    transition: none !important;
+  }
+}

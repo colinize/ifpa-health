@@ -19,6 +19,11 @@ function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3)
 }
 
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+}
+
 export function HealthScoreGauge({ score, band }: HealthScoreGaugeProps) {
   const color = bandColors[band.toLowerCase()] ?? 'var(--flat)'
   const [displayValue, setDisplayValue] = useState(0)
@@ -40,15 +45,18 @@ export function HealthScoreGauge({ score, band }: HealthScoreGaugeProps) {
   const endX = cx + r
   const endY = cy
 
-  // Count-up animation
+  // Count-up animation. Under `prefers-reduced-motion: reduce` the duration
+  // collapses to 0, so the first RAF frame jumps straight to the final value
+  // — no easing, no cascading setState.
   useEffect(() => {
-    const duration = 800 // ms
+    const reduceMotion = prefersReducedMotion()
+    const duration = reduceMotion ? 0 : 800 // ms
     let startTime: number | null = null
 
     function animate(timestamp: number) {
       if (startTime === null) startTime = timestamp
       const elapsed = timestamp - startTime
-      const t = Math.min(elapsed / duration, 1)
+      const t = duration === 0 ? 1 : Math.min(elapsed / duration, 1)
       const easedT = easeOutCubic(t)
       setDisplayValue(easedT * clampedScore)
 
@@ -66,6 +74,9 @@ export function HealthScoreGauge({ score, band }: HealthScoreGaugeProps) {
     }
   }, [clampedScore])
 
+  const bandLabel = band.charAt(0).toUpperCase() + band.slice(1).toLowerCase()
+  const ariaLabel = `Pinball health score: ${Math.round(clampedScore)} out of 100, band: ${bandLabel}`
+
   return (
     <div className="flex flex-col items-center">
       <svg
@@ -73,7 +84,10 @@ export function HealthScoreGauge({ score, band }: HealthScoreGaugeProps) {
         height="120"
         viewBox="0 0 200 120"
         className="overflow-visible"
+        role="img"
+        aria-label={ariaLabel}
       >
+        <title>{ariaLabel}</title>
         {/* Background track */}
         <path
           d={`M ${startX} ${startY} A ${r} ${r} 0 0 1 ${endX} ${endY}`}
@@ -92,7 +106,7 @@ export function HealthScoreGauge({ score, band }: HealthScoreGaugeProps) {
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={dashOffset}
-          style={{ transition: 'stroke-dashoffset 0.6s ease-out' }}
+          className="gauge-arc"
         />
         {/* Score number */}
         <text
@@ -110,8 +124,9 @@ export function HealthScoreGauge({ score, band }: HealthScoreGaugeProps) {
       <span
         className="text-base font-bold -mt-2"
         style={{ color }}
+        aria-hidden="true"
       >
-        {band.charAt(0).toUpperCase() + band.slice(1).toLowerCase()}
+        {bandLabel}
       </span>
     </div>
   )

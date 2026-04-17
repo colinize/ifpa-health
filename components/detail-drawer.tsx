@@ -107,10 +107,11 @@ export function DetailDrawer({
       onToggle={handleToggle}
       className="border-t border-border mt-8"
     >
-      <summary className="flex items-center justify-center gap-1.5 py-4 cursor-pointer list-none text-muted-foreground hover:text-foreground transition-colors [&::-webkit-details-marker]:hidden">
+      <summary className="flex items-center justify-center gap-1.5 py-4 cursor-pointer list-none text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm [&::-webkit-details-marker]:hidden">
         <span className="text-sm font-medium">More detail</span>
         <ChevronDown
-          className={`h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`chevron-rotate h-4 w-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          aria-hidden="true"
         />
       </summary>
 

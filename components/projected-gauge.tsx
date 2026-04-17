@@ -37,6 +37,9 @@ export function ProjectedGauge({ score, band, ciLow, ciHigh, year }: ProjectedGa
 
   const arcPath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`
 
+  const bandLabel = band.charAt(0).toUpperCase() + band.slice(1).toLowerCase()
+  const ariaLabel = `Projected ${year} health score: ${Math.round(clampedScore)} out of 100, band: ${bandLabel}. Confidence range ${Math.round(clampedLow)} to ${Math.round(clampedHigh)}.`
+
   return (
     <div className="flex flex-col items-center">
       <svg
@@ -44,7 +47,10 @@ export function ProjectedGauge({ score, band, ciLow, ciHigh, year }: ProjectedGa
         height="72"
         viewBox="0 0 200 120"
         className="overflow-visible"
+        role="img"
+        aria-label={ariaLabel}
       >
+        <title>{ariaLabel}</title>
         {/* Background track */}
         <path
           d={arcPath}
@@ -89,11 +95,11 @@ export function ProjectedGauge({ score, band, ciLow, ciHigh, year }: ProjectedGa
         </text>
       </svg>
       {/* Label */}
-      <span className="text-xs text-muted-foreground -mt-1">
+      <span className="text-xs text-muted-foreground -mt-1" aria-hidden="true">
         {year} Projected
       </span>
       {/* Range */}
-      <span className="text-xs text-muted-foreground/60">
+      <span className="text-xs text-muted-foreground/60" aria-hidden="true">
         {Math.round(clampedLow)}&ndash;{Math.round(clampedHigh)}
       </span>
     </div>

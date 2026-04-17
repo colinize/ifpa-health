@@ -30,7 +30,7 @@ export function AnswerCard({
       <p className="text-sm text-muted-foreground">{question}</p>
       <p className="text-3xl font-bold mt-1">{value}</p>
       <div className={`flex items-center gap-1.5 mt-1 ${colorClass}`}>
-        <TrendIcon className="h-4 w-4" />
+        <TrendIcon className="h-4 w-4" aria-hidden="true" />
         <span className="text-sm">{trend.label}</span>
       </div>
       <div className="mt-3">

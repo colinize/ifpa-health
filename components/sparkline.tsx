@@ -35,7 +35,13 @@ export function Sparkline({
     paddingY + plotHeight - ((data[data.length - 1] - min) / range) * plotHeight
 
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      aria-hidden="true"
+      focusable="false"
+    >
       <polyline
         points={points}
         fill="none"
