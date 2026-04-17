@@ -75,7 +75,6 @@ export default async function DashboardPage() {
         priorYear: priorYear.year,
         currentYear: latestYear.year,
         priorTotal: priorYear.unique_players,
-        returning: latestYear.returning_players,
         churned: priorYear.unique_players - latestYear.returning_players,
         newPlayers: latestYear.unique_players - latestYear.returning_players,
         currentTotal: latestYear.unique_players,

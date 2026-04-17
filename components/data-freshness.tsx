@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge'
 import { formatDistanceToNow } from 'date-fns'
 
 interface DataFreshnessProps {
-  lastRun: { completed_at: string; status: string } | null
+  lastRun: { completed_at: string } | null
 }
 
 export function DataFreshness({ lastRun }: DataFreshnessProps) {

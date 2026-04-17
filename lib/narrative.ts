@@ -12,8 +12,10 @@ const TREND_PHRASES: Record<Band, string> = {
   critical: 'in decline',
 }
 
+type PillarKey = 'players' | 'retention' | 'tournaments'
+
 interface PillarEvidence {
-  key: string
+  key: PillarKey
   score: number
   rawValue: number
   deviation: number
@@ -22,8 +24,10 @@ interface PillarEvidence {
 export function generateNarrative(result: HealthScoreResult): string {
   const trend = TREND_PHRASES[result.band]
 
+  // `computeHealthScore` always emits exactly these three keys; the scorer is
+  // the only writer of `components`, so the narrow cast is safe.
   const pillars: PillarEvidence[] = Object.entries(result.components).map(([key, comp]) => ({
-    key,
+    key: key as PillarKey,
     score: comp.score,
     rawValue: comp.raw_value,
     deviation: Math.abs(comp.score - 50),
@@ -68,9 +72,6 @@ function formatEvidence(pillar: PillarEvidence): string {
       if (rawValue >= 45) return `a strong ${rawValue.toFixed(0)}% player retention rate`
       if (rawValue >= 35) return `a solid ${rawValue.toFixed(0)}% player retention rate`
       return `retention at just ${rawValue.toFixed(0)}%`
-
-    default:
-      return `${key} at ${rawValue.toFixed(1)}`
   }
 }
 
@@ -95,8 +96,5 @@ function formatSecondary(pillar: PillarEvidence): string {
       if (rawValue >= 45) return `with a strong ${rawValue.toFixed(0)}% player retention rate`
       if (rawValue >= 35) return `with a solid ${rawValue.toFixed(0)}% player retention rate`
       return `though retention has dipped to ${rawValue.toFixed(0)}%`
-
-    default:
-      return `${key} at ${rawValue.toFixed(1)}`
   }
 }

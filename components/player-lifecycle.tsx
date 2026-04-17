@@ -2,7 +2,6 @@ export interface PlayerLifecycleProps {
   priorYear: number
   currentYear: number
   priorTotal: number
-  returning: number
   churned: number
   newPlayers: number
   currentTotal: number
