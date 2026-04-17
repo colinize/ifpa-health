@@ -1,4 +1,5 @@
 import { createPublicClient } from '@/lib/supabase'
+import { toNum } from '@/lib/utils'
 import { generateNarrative } from '@/lib/narrative'
 import type { HealthScoreResult } from '@/lib/health-score'
 import { computeProjectedScore } from '@/lib/projected-score'
@@ -50,7 +51,7 @@ export default async function DashboardPage() {
       .single(),
     supabase
       .from('collection_runs')
-      .select('completed_at, status')
+      .select('completed_at')
       .order('started_at', { ascending: false })
       .limit(1)
       .single(),
@@ -97,18 +98,18 @@ export default async function DashboardPage() {
     {
       target_year: forecast.target_year,
       months_of_data: forecast.months_of_data,
-      projected_tournaments: Math.round(parseFloat(String(forecast.projected_tournaments ?? 0))),
-      projected_entries: Math.round(parseFloat(String(forecast.projected_entries ?? 0))),
+      projected_tournaments: Math.round(toNum(forecast.projected_tournaments)),
+      projected_entries: Math.round(toNum(forecast.projected_entries)),
       projected_players: hasPlayerProjections ? (forecast.projected_unique_players ?? 0) : fallbackPlayers,
       projected_returning: hasPlayerProjections ? (forecast.projected_returning_players ?? 0) : fallbackReturning,
-      ci_68_low_tournaments: Math.round(parseFloat(String(forecast.ci_68_low_tournaments ?? 0))),
-      ci_68_high_tournaments: Math.round(parseFloat(String(forecast.ci_68_high_tournaments ?? 0))),
-      ci_95_low_tournaments: Math.round(parseFloat(String(forecast.ci_95_low_tournaments ?? 0))),
-      ci_95_high_tournaments: Math.round(parseFloat(String(forecast.ci_95_high_tournaments ?? 0))),
-      ci_68_low_entries: Math.round(parseFloat(String(forecast.ci_68_low_entries ?? 0))),
-      ci_68_high_entries: Math.round(parseFloat(String(forecast.ci_68_high_entries ?? 0))),
-      ci_95_low_entries: Math.round(parseFloat(String(forecast.ci_95_low_entries ?? 0))),
-      ci_95_high_entries: Math.round(parseFloat(String(forecast.ci_95_high_entries ?? 0))),
+      ci_68_low_tournaments: Math.round(toNum(forecast.ci_68_low_tournaments)),
+      ci_68_high_tournaments: Math.round(toNum(forecast.ci_68_high_tournaments)),
+      ci_95_low_tournaments: Math.round(toNum(forecast.ci_95_low_tournaments)),
+      ci_95_high_tournaments: Math.round(toNum(forecast.ci_95_high_tournaments)),
+      ci_68_low_entries: Math.round(toNum(forecast.ci_68_low_entries)),
+      ci_68_high_entries: Math.round(toNum(forecast.ci_68_high_entries)),
+      ci_95_low_entries: Math.round(toNum(forecast.ci_95_low_entries)),
+      ci_95_high_entries: Math.round(toNum(forecast.ci_95_high_entries)),
       ci_68_low_players: hasPlayerProjections ? (forecast.ci_68_low_players ?? 0) : fallbackPlayers,
       ci_68_high_players: hasPlayerProjections ? (forecast.ci_68_high_players ?? 0) : fallbackPlayers,
       ci_68_low_returning: hasPlayerProjections ? (forecast.ci_68_low_returning ?? 0) : fallbackReturning,
@@ -126,16 +127,16 @@ export default async function DashboardPage() {
     : null
 
   // Answer card 2: Retention
-  const retentionRate = latestYear?.retention_rate ? parseFloat(String(latestYear.retention_rate)) : null
-  const priorRetention = priorYear?.retention_rate ? parseFloat(String(priorYear.retention_rate)) : null
+  const retentionRate = latestYear?.retention_rate ? toNum(latestYear.retention_rate) : null
+  const priorRetention = priorYear?.retention_rate ? toNum(priorYear.retention_rate) : null
   const retentionDelta = retentionRate != null && priorRetention != null ? retentionRate - priorRetention : null
 
   // Answer card 3: Tournaments
-  const tournamentYoyPct = latestYear?.tournament_yoy_pct ? parseFloat(String(latestYear.tournament_yoy_pct)) : null
+  const tournamentYoyPct = latestYear?.tournament_yoy_pct ? toNum(latestYear.tournament_yoy_pct) : null
 
   // Sparkline data arrays (complete years only)
   const playerSparkline = completeYears.map(s => s.unique_players ?? 0)
-  const retentionSparkline = completeYears.map(s => parseFloat(String(s.retention_rate ?? 0)))
+  const retentionSparkline = completeYears.map(s => toNum(s.retention_rate))
   const tournamentSparkline = completeYears.map(s => s.tournaments ?? 0)
 
   // Trend direction helper
@@ -250,10 +251,10 @@ export default async function DashboardPage() {
       <DetailDrawer
         forecast={forecast ? {
           target_year: forecast.target_year,
-          projected_tournaments: Math.round(parseFloat(String(forecast.projected_tournaments))),
-          projected_entries: Math.round(parseFloat(String(forecast.projected_entries))),
-          ci_68_low_tournaments: Math.round(parseFloat(String(forecast.ci_68_low_tournaments))),
-          ci_68_high_tournaments: Math.round(parseFloat(String(forecast.ci_68_high_tournaments))),
+          projected_tournaments: Math.round(toNum(forecast.projected_tournaments)),
+          projected_entries: Math.round(toNum(forecast.projected_entries)),
+          ci_68_low_tournaments: Math.round(toNum(forecast.ci_68_low_tournaments)),
+          ci_68_high_tournaments: Math.round(toNum(forecast.ci_68_high_tournaments)),
           months_of_data: forecast.months_of_data,
         } : null}
         annualData={completeYears.map(s => ({
@@ -261,7 +262,7 @@ export default async function DashboardPage() {
           tournaments: s.tournaments,
           player_entries: s.player_entries,
           unique_players: s.unique_players,
-          retention_rate: parseFloat(String(s.retention_rate ?? 0)),
+          retention_rate: toNum(s.retention_rate),
         }))}
         monthlyData={(monthlyEvents ?? [])
           .slice()
@@ -271,7 +272,7 @@ export default async function DashboardPage() {
             month: m.month,
             event_count: m.event_count,
             prior_year_event_count: m.prior_year_event_count,
-            yoy_change_pct: m.yoy_change_pct != null ? parseFloat(String(m.yoy_change_pct)) : null,
+            yoy_change_pct: m.yoy_change_pct != null ? toNum(m.yoy_change_pct) : null,
           }))}
         countryGrowthData={countryGrowthData}
         priorYearTournaments={latestYear?.tournaments ?? null}

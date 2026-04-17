@@ -6,6 +6,7 @@
 
 import { computeHealthScore, type HealthScoreInput } from '@/lib/health-score'
 import { createServiceClient } from '@/lib/supabase'
+import { toNum } from '@/lib/utils'
 
 export async function runHealthScorer(): Promise<{
   records_affected: number
@@ -50,12 +51,8 @@ export async function runHealthScorer(): Promise<{
 
   const input: HealthScoreInput = {
     player_yoy_pct: playerYoyPct,
-    retention_rate: latestYear.retention_rate
-      ? parseFloat(String(latestYear.retention_rate))
-      : 0,
-    tournament_yoy_pct: latestYear.tournament_yoy_pct
-      ? parseFloat(String(latestYear.tournament_yoy_pct))
-      : 0,
+    retention_rate: toNum(latestYear.retention_rate),
+    tournament_yoy_pct: toNum(latestYear.tournament_yoy_pct),
   }
 
   // ---- 3. Compute health score (methodology v2) -----------------------------
