@@ -27,7 +27,7 @@ export default async function DashboardPage() {
     { data: monthlyEvents },
     { data: forecast },
     { data: latestRun },
-    { data: countrySnapshots },
+    { data: countryGrowthRows },
   ] = await Promise.all([
     supabase
       .from('health_scores')
@@ -59,10 +59,12 @@ export default async function DashboardPage() {
       .order('started_at', { ascending: false })
       .limit(1)
       .single(),
+    // View that pre-aggregates one row per country (first + latest snapshot).
+    // See `supabase/migrations/005_country_growth_view.sql` — avoids the
+    // JS-client 1000-row silent cap on the raw table.
     supabase
-      .from('country_snapshots')
-      .select('snapshot_date, country_name, country_code, active_players')
-      .order('snapshot_date', { ascending: true }),
+      .from('country_growth_v')
+      .select('country_name, country_code, first_active_players, latest_active_players, first_snapshot, latest_snapshot, snapshot_count'),
   ])
 
   // Use the last COMPLETE year for metric cards (not the current incomplete year)
@@ -153,7 +155,7 @@ export default async function DashboardPage() {
 
   // Country growth: compare latest snapshot to earliest per country.
   // See `computeCountryGrowthData` for the single-snapshot null-handling.
-  const countryGrowthData = computeCountryGrowthData(countrySnapshots)
+  const countryGrowthData = computeCountryGrowthData(countryGrowthRows)
 
   // Retention trend is in percentage points, not percent
   function getRetentionTrend(delta: number | null): { direction: 'up' | 'down' | 'flat'; label: string } {

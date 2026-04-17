@@ -55,14 +55,18 @@ export function computeLifecycleData(
 }
 
 /**
- * Minimal row shape consumed by `computeCountryGrowthData`. Matches the
- * `.select()` projection in `app/page.tsx`.
+ * Pre-aggregated row from the `country_growth_v` view — one row per country.
+ * The view (see `supabase/migrations/005_country_growth_view.sql`) does the
+ * grouping in SQL so the page never fetches raw `country_snapshots` rows.
  */
-export interface CountrySnapshotRow {
-  snapshot_date: string
-  country_name: string
+export interface CountryGrowthViewRow {
+  country_name: string | null
   country_code: string | null
-  active_players: number
+  first_active_players: number | null
+  latest_active_players: number | null
+  first_snapshot: string | null
+  latest_snapshot: string | null
+  snapshot_count: number | null
 }
 
 export interface CountryGrowthRow {
@@ -76,44 +80,44 @@ export interface CountryGrowthRow {
 }
 
 /**
- * Collapse per-country snapshot history into one row per country describing
- * the change from first observed snapshot to latest. Countries with a single
- * snapshot have `change` and `change_pct` set to `null` — not "growth since
- * we started tracking," but "insufficient data to compute growth."
- *
- * Input must be sorted ascending by `snapshot_date` (the page query does
- * this). Sorted output is by `active_players` descending.
+ * Normalize the pre-aggregated country-growth view rows into the dashboard's
+ * shape. Countries with a single snapshot have `change` and `change_pct` set
+ * to `null` — not "growth since we started tracking," but "insufficient data
+ * to compute growth." Output is sorted by current `active_players` desc.
  */
 export function computeCountryGrowthData(
-  snapshots: readonly CountrySnapshotRow[] | null | undefined,
+  rows: readonly CountryGrowthViewRow[] | null | undefined,
 ): CountryGrowthRow[] {
-  if (!snapshots || snapshots.length === 0) return []
+  if (!rows || rows.length === 0) return []
 
-  const byCountry = new Map<string, CountrySnapshotRow[]>()
-  for (const s of snapshots) {
-    const list = byCountry.get(s.country_name) ?? []
-    list.push(s)
-    byCountry.set(s.country_name, list)
-  }
-
-  return Array.from(byCountry.entries())
-    .map(([name, rows]) => {
-      const first = rows[0]
-      const latest = rows[rows.length - 1]
-      const hasMultiple = rows.length > 1
-      const change = hasMultiple ? latest.active_players - first.active_players : null
-      const changePct = hasMultiple && first.active_players > 0
-        ? ((latest.active_players - first.active_players) / first.active_players) * 100
+  return rows
+    .filter((r): r is CountryGrowthViewRow & {
+      country_name: string
+      latest_active_players: number
+      latest_snapshot: string
+      first_snapshot: string
+    } =>
+      r.country_name !== null &&
+      r.latest_active_players !== null &&
+      r.latest_snapshot !== null &&
+      r.first_snapshot !== null,
+    )
+    .map((r) => {
+      const hasMultiple = (r.snapshot_count ?? 1) > 1
+      const first = r.first_active_players ?? r.latest_active_players
+      const change = hasMultiple ? r.latest_active_players - first : null
+      const changePct = hasMultiple && first > 0
+        ? ((r.latest_active_players - first) / first) * 100
         : null
 
       return {
-        country_name: name,
-        country_code: latest.country_code ?? '',
-        active_players: latest.active_players,
+        country_name: r.country_name,
+        country_code: r.country_code ?? '',
+        active_players: r.latest_active_players,
         change,
         change_pct: changePct,
-        first_snapshot: first.snapshot_date,
-        latest_snapshot: latest.snapshot_date,
+        first_snapshot: r.first_snapshot,
+        latest_snapshot: r.latest_snapshot,
       }
     })
     .sort((a, b) => b.active_players - a.active_players)

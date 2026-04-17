@@ -479,7 +479,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      country_growth_v: {
+        Row: {
+          country_code: string | null
+          country_name: string | null
+          first_active_players: number | null
+          first_snapshot: string | null
+          latest_active_players: number | null
+          latest_snapshot: string | null
+          snapshot_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

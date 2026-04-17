@@ -55,18 +55,26 @@ describe('computeCountryGrowthData', () => {
     expect(computeCountryGrowthData([])).toEqual([])
   })
 
-  it('collapses multiple snapshots per country and sorts by active_players desc', () => {
-    const snapshots = [
-      { snapshot_date: '2024-01-01', country_name: 'USA', country_code: 'US', active_players: 5000 },
-      { snapshot_date: '2024-06-01', country_name: 'USA', country_code: 'US', active_players: 5500 },
-      { snapshot_date: '2024-01-01', country_name: 'Canada', country_code: 'CA', active_players: 1000 },
-      { snapshot_date: '2024-06-01', country_name: 'Canada', country_code: 'CA', active_players: 1100 },
+  it('sorts countries by latest active_players desc and computes change', () => {
+    const rows = [
+      {
+        country_name: 'USA', country_code: 'US',
+        first_active_players: 5000, latest_active_players: 5500,
+        first_snapshot: '2024-01-01', latest_snapshot: '2024-06-01',
+        snapshot_count: 2,
+      },
+      {
+        country_name: 'Canada', country_code: 'CA',
+        first_active_players: 1000, latest_active_players: 1100,
+        first_snapshot: '2024-01-01', latest_snapshot: '2024-06-01',
+        snapshot_count: 2,
+      },
     ]
 
-    const result = computeCountryGrowthData(snapshots)
+    const result = computeCountryGrowthData(rows)
 
     expect(result).toHaveLength(2)
-    expect(result[0].country_name).toBe('USA')  // sorted first by active_players
+    expect(result[0].country_name).toBe('USA')
     expect(result[0].change).toBe(500)
     expect(result[0].change_pct).toBeCloseTo(10, 1)
     expect(result[0].first_snapshot).toBe('2024-01-01')
@@ -74,11 +82,16 @@ describe('computeCountryGrowthData', () => {
     expect(result[1].country_name).toBe('Canada')
   })
 
-  it('sets change and change_pct to null for a single-snapshot country', () => {
-    const snapshots = [
-      { snapshot_date: '2024-06-01', country_name: 'Japan', country_code: 'JP', active_players: 2000 },
+  it('sets change and change_pct to null when snapshot_count is 1', () => {
+    const rows = [
+      {
+        country_name: 'Japan', country_code: 'JP',
+        first_active_players: 2000, latest_active_players: 2000,
+        first_snapshot: '2024-06-01', latest_snapshot: '2024-06-01',
+        snapshot_count: 1,
+      },
     ]
-    const result = computeCountryGrowthData(snapshots)
+    const result = computeCountryGrowthData(rows)
     expect(result).toHaveLength(1)
     expect(result[0].change).toBeNull()
     expect(result[0].change_pct).toBeNull()
@@ -86,20 +99,48 @@ describe('computeCountryGrowthData', () => {
   })
 
   it('falls back to empty string when country_code is null', () => {
-    const snapshots = [
-      { snapshot_date: '2024-01-01', country_name: 'Atlantis', country_code: null, active_players: 10 },
-      { snapshot_date: '2024-06-01', country_name: 'Atlantis', country_code: null, active_players: 12 },
+    const rows = [
+      {
+        country_name: 'Atlantis', country_code: null,
+        first_active_players: 10, latest_active_players: 12,
+        first_snapshot: '2024-01-01', latest_snapshot: '2024-06-01',
+        snapshot_count: 2,
+      },
     ]
-    expect(computeCountryGrowthData(snapshots)[0].country_code).toBe('')
+    expect(computeCountryGrowthData(rows)[0].country_code).toBe('')
   })
 
   it('guards against divide-by-zero when first snapshot has 0 active players', () => {
-    const snapshots = [
-      { snapshot_date: '2024-01-01', country_name: 'Narnia', country_code: 'NA', active_players: 0 },
-      { snapshot_date: '2024-06-01', country_name: 'Narnia', country_code: 'NA', active_players: 5 },
+    const rows = [
+      {
+        country_name: 'Narnia', country_code: 'NA',
+        first_active_players: 0, latest_active_players: 5,
+        first_snapshot: '2024-01-01', latest_snapshot: '2024-06-01',
+        snapshot_count: 2,
+      },
     ]
-    const result = computeCountryGrowthData(snapshots)
+    const result = computeCountryGrowthData(rows)
     expect(result[0].change).toBe(5)
-    expect(result[0].change_pct).toBeNull() // can't compute pct from zero baseline
+    expect(result[0].change_pct).toBeNull()
+  })
+
+  it('filters out rows missing required fields', () => {
+    const rows = [
+      {
+        country_name: null, country_code: 'XX',
+        first_active_players: 1, latest_active_players: 2,
+        first_snapshot: '2024-01-01', latest_snapshot: '2024-06-01',
+        snapshot_count: 2,
+      },
+      {
+        country_name: 'Valid', country_code: 'VA',
+        first_active_players: 10, latest_active_players: 15,
+        first_snapshot: '2024-01-01', latest_snapshot: '2024-06-01',
+        snapshot_count: 2,
+      },
+    ]
+    const result = computeCountryGrowthData(rows)
+    expect(result).toHaveLength(1)
+    expect(result[0].country_name).toBe('Valid')
   })
 })
