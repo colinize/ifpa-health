@@ -24,12 +24,37 @@ export default async function DashboardPage() {
     { data: latestRun },
     { data: countrySnapshots },
   ] = await Promise.all([
-    supabase.from('health_scores').select('*').order('score_date', { ascending: false }).limit(1).single(),
-    supabase.from('annual_snapshots').select('*').order('year', { ascending: true }),
-    supabase.from('monthly_event_counts').select('*').order('year', { ascending: true }).order('month', { ascending: true }),
-    supabase.from('forecasts').select('*').order('forecast_date', { ascending: false }).limit(1).single(),
-    supabase.from('collection_runs').select('*').order('started_at', { ascending: false }).limit(1).single(),
-    supabase.from('country_snapshots').select('*').order('snapshot_date', { ascending: true }),
+    supabase
+      .from('health_scores')
+      .select('composite_score, band, components')
+      .order('score_date', { ascending: false })
+      .limit(1)
+      .single(),
+    supabase
+      .from('annual_snapshots')
+      .select('year, tournaments, player_entries, unique_players, returning_players, tournament_yoy_pct, retention_rate')
+      .order('year', { ascending: true }),
+    supabase
+      .from('monthly_event_counts')
+      .select('year, month, event_count, prior_year_event_count, yoy_change_pct')
+      .order('year', { ascending: true })
+      .order('month', { ascending: true }),
+    supabase
+      .from('forecasts')
+      .select('target_year, months_of_data, projected_tournaments, projected_entries, projected_unique_players, projected_returning_players, ci_68_low_tournaments, ci_68_high_tournaments, ci_95_low_tournaments, ci_95_high_tournaments, ci_68_low_entries, ci_68_high_entries, ci_95_low_entries, ci_95_high_entries, ci_68_low_players, ci_68_high_players, ci_68_low_returning, ci_68_high_returning')
+      .order('forecast_date', { ascending: false })
+      .limit(1)
+      .single(),
+    supabase
+      .from('collection_runs')
+      .select('completed_at, status')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .single(),
+    supabase
+      .from('country_snapshots')
+      .select('snapshot_date, country_name, country_code, active_players')
+      .order('snapshot_date', { ascending: true }),
   ])
 
   // Use the last COMPLETE year for metric cards (not the current incomplete year)
