@@ -55,6 +55,9 @@ export async function runAnnualCollection(): Promise<{
   }
 
   // Build rows
+  // `collected_at` must be in the column set — upsert onConflict only refreshes
+  // columns it sees, and the table default `now()` only fires on INSERT.
+  const now = new Date().toISOString()
   const rows = sortedEvents.map((e) => {
     const players = playersByYear.get(e.year)
     const priorEvents = eventsByYear.get(e.year - 1)
@@ -84,6 +87,7 @@ export async function runAnnualCollection(): Promise<{
       countries: null, // not available from these endpoints
       tournament_yoy_pct,
       entry_yoy_pct,
+      collected_at: now,
       // avg_attendance and retention_rate are generated columns — do NOT insert
     }
   })

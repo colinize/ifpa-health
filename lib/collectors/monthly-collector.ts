@@ -46,13 +46,17 @@ export async function runMonthlyCollection(): Promise<{
     }
   }
 
-  // Build upsert rows with YoY calculations
+  // Build upsert rows with YoY calculations.
+  // `collected_at` must be in the column set — upsert onConflict only refreshes
+  // columns it sees, and the table default `now()` only fires on INSERT.
+  const now = new Date().toISOString()
   const rows: Array<{
     year: number
     month: number
     event_count: number
     prior_year_event_count: number | null
     yoy_change_pct: number | null
+    collected_at: string
   }> = []
 
   for (const [key, eventCount] of countMap) {
@@ -75,6 +79,7 @@ export async function runMonthlyCollection(): Promise<{
       event_count: eventCount,
       prior_year_event_count: priorYearCount,
       yoy_change_pct,
+      collected_at: now,
     })
   }
 
