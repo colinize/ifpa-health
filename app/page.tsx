@@ -3,6 +3,10 @@ import { toNum, isStale } from '@/lib/utils'
 import { generateNarrative } from '@/lib/narrative'
 import { parseHealthScore } from '@/lib/health-score'
 import { computeProjectedScore } from '@/lib/projected-score'
+import {
+  computeLifecycleData,
+  computeCountryGrowthData,
+} from '@/lib/derivations'
 import type { ForecastResult } from '@/lib/forecast'
 import { HealthScoreGauge } from '@/components/health-score-gauge'
 import { ProjectedGauge } from '@/components/projected-gauge'
@@ -70,17 +74,10 @@ export default async function DashboardPage() {
   // Current (incomplete) year actuals for the YoY table projected row
   const currentYearRow = annualSnapshots?.find(s => s.year === currentYear)
 
-  // Player lifecycle waterfall: compute flow between two most recent complete years
-  const lifecycleData = latestYear && priorYear && latestYear.returning_players > 0
-    ? {
-        priorYear: priorYear.year,
-        currentYear: latestYear.year,
-        priorTotal: priorYear.unique_players,
-        churned: priorYear.unique_players - latestYear.returning_players,
-        newPlayers: latestYear.unique_players - latestYear.returning_players,
-        currentTotal: latestYear.unique_players,
-      }
-    : null
+  // Player lifecycle waterfall: flow between the two most recent complete years.
+  // The helper in `lib/derivations.ts` handles the `returning_players === null`
+  // case explicitly — an earlier `> 0` truthiness check hid the null gap.
+  const lifecycleData = computeLifecycleData(priorYear, latestYear)
 
   // Generate narrative
   const narrative = healthScore
@@ -154,39 +151,9 @@ export default async function DashboardPage() {
     return { direction: 'flat', label: `Flat vs ${priorYear?.year ?? ''}` }
   }
 
-  // Country growth: compare latest snapshot to earliest per country
-  const countryGrowthData = (() => {
-    if (!countrySnapshots || countrySnapshots.length === 0) return []
-
-    const byCountry = new Map<string, typeof countrySnapshots>()
-    for (const s of countrySnapshots) {
-      const list = byCountry.get(s.country_name) ?? []
-      list.push(s)
-      byCountry.set(s.country_name, list)
-    }
-
-    return Array.from(byCountry.entries())
-      .map(([name, snapshots]) => {
-        const first = snapshots[0]
-        const latest = snapshots[snapshots.length - 1]
-        const hasMultiple = snapshots.length > 1
-        const change = hasMultiple ? latest.active_players - first.active_players : null
-        const changePct = hasMultiple && first.active_players > 0
-          ? ((latest.active_players - first.active_players) / first.active_players) * 100
-          : null
-
-        return {
-          country_name: name,
-          country_code: latest.country_code ?? '',
-          active_players: latest.active_players,
-          change,
-          change_pct: changePct,
-          first_snapshot: first.snapshot_date,
-          latest_snapshot: latest.snapshot_date,
-        }
-      })
-      .sort((a, b) => b.active_players - a.active_players)
-  })()
+  // Country growth: compare latest snapshot to earliest per country.
+  // See `computeCountryGrowthData` for the single-snapshot null-handling.
+  const countryGrowthData = computeCountryGrowthData(countrySnapshots)
 
   // Retention trend is in percentage points, not percent
   function getRetentionTrend(delta: number | null): { direction: 'up' | 'down' | 'flat'; label: string } {
