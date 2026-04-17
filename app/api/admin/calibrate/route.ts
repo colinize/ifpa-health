@@ -7,9 +7,7 @@ import { sanitizeErrorMessage } from '@/lib/sanitize'
 // rows. No validation step needed. A generic try/catch prevents Supabase
 // fetch errors from reaching the caller with column or constraint names.
 export async function POST(request: NextRequest) {
-  // Admin routes currently share CRON_SECRET. Next step: add ADMIN_SECRET
-  // to Vercel env and switch this to 'ADMIN_SECRET'. See _security/02-api-surface.md.
-  if (!verifyBearer(request, 'CRON_SECRET')) {
+  if (!verifyBearer(request, 'ADMIN_SECRET')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
