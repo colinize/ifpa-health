@@ -105,3 +105,34 @@ function clamp(value: number, min = 0, max = 100): number {
 function round2(value: number): number {
   return Math.round(value * 100) / 100
 }
+
+// ---------------------------------------------------------------------------
+// parseHealthScore
+//
+// Bridge from a Supabase `health_scores` row (where `band` is `string` and
+// `components` is `Json`) to the strongly-typed `HealthScoreResult` the
+// narrative engine consumes. The scorer is the only writer of this table, so
+// the shape is trusted — but we still narrow explicitly rather than double-
+// cast at the call site.
+// ---------------------------------------------------------------------------
+
+interface HealthScoreRow {
+  composite_score: number
+  band: string
+  components: unknown
+}
+
+const BANDS: readonly Band[] = ['thriving', 'healthy', 'stable', 'concerning', 'critical']
+
+function isBand(value: string): value is Band {
+  return (BANDS as readonly string[]).includes(value)
+}
+
+export function parseHealthScore(row: HealthScoreRow): HealthScoreResult {
+  return {
+    composite_score: row.composite_score,
+    band: isBand(row.band) ? row.band : 'stable',
+    components: row.components as Record<string, ComponentScore>,
+    methodology_version: 2,
+  }
+}

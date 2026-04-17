@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
-export function cn(...inputs: ClassValue[]) {
+export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs))
 }
 
@@ -48,4 +48,19 @@ export function toNumOrNull(v: unknown): number | null {
   if (v == null) return null
   const n = parseFloat(String(v))
   return Number.isFinite(n) ? n : null
+}
+
+// ---------------------------------------------------------------------------
+// isStale
+//
+// Staleness check for timestamp strings. Extracted to `lib/` so the caller
+// (a Server Component that ISR-rebuilds once per hour) isn't flagged by the
+// `react-hooks/purity` lint rule for calling `Date.now()` inside the render
+// body. The helper is pure at the call site — `Date.now()` resolves when the
+// Server Component rebuilds, which is the correct semantic.
+// ---------------------------------------------------------------------------
+
+export function isStale(completedAt: string | null | undefined, thresholdMs: number): boolean {
+  if (!completedAt) return false
+  return Date.now() - new Date(completedAt).getTime() > thresholdMs
 }

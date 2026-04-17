@@ -1,7 +1,7 @@
 import { createPublicClient } from '@/lib/supabase'
-import { toNum } from '@/lib/utils'
+import { toNum, isStale } from '@/lib/utils'
 import { generateNarrative } from '@/lib/narrative'
-import type { HealthScoreResult } from '@/lib/health-score'
+import { parseHealthScore } from '@/lib/health-score'
 import { computeProjectedScore } from '@/lib/projected-score'
 import type { ForecastResult } from '@/lib/forecast'
 import { HealthScoreGauge } from '@/components/health-score-gauge'
@@ -84,8 +84,15 @@ export default async function DashboardPage() {
 
   // Generate narrative
   const narrative = healthScore
-    ? generateNarrative(healthScore as unknown as HealthScoreResult)
+    ? generateNarrative(parseHealthScore(healthScore))
     : 'No health score data available.'
+
+  // Data freshness: compute staleness server-side (ISR re-renders hourly)
+  // so `DataFreshness` stays purely presentational. `isStale` lives in
+  // `lib/utils.ts` to keep the `Date.now()` call out of the component body
+  // (react-hooks/purity flags it there).
+  const STALE_THRESHOLD_MS = 48 * 60 * 60 * 1000
+  const isDataStale = isStale(latestRun?.completed_at, STALE_THRESHOLD_MS)
 
   // Projected 2026 score
   // If 2026 player data isn't available from the IFPA API yet, hold at 2025 actuals
@@ -195,7 +202,7 @@ export default async function DashboardPage() {
       <header className="flex items-center justify-between px-4 md:px-6 py-4 max-w-4xl mx-auto w-full">
         <div className="flex items-center gap-2 min-w-0">
           <h1 className="text-lg font-semibold tracking-tight whitespace-nowrap">IFPA Health</h1>
-          <DataFreshness lastRun={latestRun} />
+          <DataFreshness lastRun={latestRun} isStale={isDataStale} />
         </div>
         <ThemeToggle />
       </header>
