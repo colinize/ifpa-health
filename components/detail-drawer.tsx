@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState, useSyncExternalStore } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { MonthlyPulse } from './monthly-pulse'
 import { CountryGrowth } from './country-growth'
@@ -50,6 +50,24 @@ interface DetailDrawerProps {
 
 const STORAGE_KEY = 'detail-drawer-open'
 
+// Read initial open state from localStorage so we avoid setState-in-effect.
+// Server and first client render both return `false` (closed), and a future
+// client-only re-render picks up the stored value via getSnapshot.
+function subscribeStorage(callback: () => void) {
+  if (typeof window === 'undefined') return () => {}
+  window.addEventListener('storage', callback)
+  return () => window.removeEventListener('storage', callback)
+}
+
+function getStoredOpen(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.localStorage.getItem(STORAGE_KEY) === 'true'
+}
+
+function getStoredOpenServer(): boolean {
+  return false
+}
+
 export function DetailDrawer({
   forecast,
   annualData,
@@ -60,22 +78,17 @@ export function DetailDrawer({
   lifecycleData,
 }: DetailDrawerProps) {
   const detailsRef = useRef<HTMLDetailsElement>(null)
-  const [isOpen, setIsOpen] = useState(false)
-
-  // Restore open/closed state from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored === 'true') {
-      setIsOpen(true)
-      if (detailsRef.current) {
-        detailsRef.current.open = true
-      }
-    }
-  }, [])
+  const storedOpen = useSyncExternalStore(subscribeStorage, getStoredOpen, getStoredOpenServer)
+  // After a user toggles the drawer in this session, prefer their in-session
+  // choice over whatever localStorage says (the storage subscription only
+  // reacts to cross-tab changes, but this also decouples chevron state from
+  // the raw storage value once the user has interacted).
+  const [sessionOpen, setSessionOpen] = useState<boolean | null>(null)
+  const isOpen = sessionOpen ?? storedOpen
 
   function handleToggle() {
     const open = detailsRef.current?.open ?? false
-    setIsOpen(open)
+    setSessionOpen(open)
     localStorage.setItem(STORAGE_KEY, String(open))
   }
 
@@ -90,6 +103,7 @@ export function DetailDrawer({
   return (
     <details
       ref={detailsRef}
+      open={isOpen}
       onToggle={handleToggle}
       className="border-t border-border mt-8"
     >
