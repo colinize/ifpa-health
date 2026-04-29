@@ -21,21 +21,22 @@ export async function runAnnualCollection(): Promise<{
 
   // Index players-by-year by year for quick lookup
   const playersByYear = new Map<number, {
-    unique_players: number
+    unique_players: number | null
     returning_players: number | null
     new_players: number | null
   }>()
 
   for (const p of playersData.stats) {
     const year = parseInt(p.year, 10)
-    const currentYearCount = parseInt(p.count, 10)
+    const currentYearCount = parseInt(p.current_year_count, 10)
     const previousYearCount = parseInt(p.previous_year_count, 10)
     playersByYear.set(year, {
-      unique_players: currentYearCount,
-      returning_players: !isNaN(previousYearCount) ? previousYearCount : null,
-      new_players: !isNaN(currentYearCount) && !isNaN(previousYearCount)
-        ? currentYearCount - previousYearCount
-        : null,
+      unique_players: Number.isFinite(currentYearCount) ? currentYearCount : null,
+      returning_players: Number.isFinite(previousYearCount) ? previousYearCount : null,
+      new_players:
+        Number.isFinite(currentYearCount) && Number.isFinite(previousYearCount)
+          ? currentYearCount - previousYearCount
+          : null,
     })
   }
 

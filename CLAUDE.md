@@ -141,7 +141,7 @@ See `docs/patterns-and-conventions.md` for canonical files and full rules.
 - **Collectors return `{ records_affected, details }`.** Cron routes aggregate these into the `collection_runs` row. Never throw quietly — always surface errors so the row flips to `error` with a message.
 - **IFPA API response mismatches.** The real API fields differ from published docs. Known deltas:
   - `events_by_year`: response key `stats` (not `events_by_year`), fields `tournament_count` / `player_count` (singular)
-  - `players_by_year`: response key `stats`, fields `count` / `previous_year_count` (`count` is the current-year value despite the name)
+  - `players_by_year`: response key `stats`, fields `current_year_count` / `previous_year_count` / `previous_2_year_count`. An earlier "fix" to `count` was wrong (the API has never returned `count` here) and silently broke the annual upsert for 11 weeks — see session 8.
   - `country_players`: response key `stats` (not `country_list`), field `player_count` (not `count`)
   - `stats/overall`: age nested under `stats.age`, keys like `age_18_to_29`
   - `rankings/wppr`: `name` (full), `current_rank`, `rating_value`
