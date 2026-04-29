@@ -75,12 +75,12 @@ Known deltas (reflecting actual code in `lib/ifpa-client.ts`):
 | Endpoint | Expected (docs) | Actual (code) |
 |---|---|---|
 | `GET /stats/events_by_year` | response key `events_by_year` | response key `stats`; entry fields `tournament_count` / `player_count` (singular) |
-| `GET /stats/players_by_year` | fields `unique_players`, `returning_players` | response key `stats`; entry fields `count` (current), `previous_year_count`, `previous_2_year_count` |
+| `GET /stats/players_by_year` | fields `unique_players`, `returning_players` | response key `stats`; entry fields `current_year_count`, `previous_year_count`, `previous_2_year_count` |
 | `GET /stats/country_players` | response key `country_list`, field `count` | response key `stats`, field `player_count` |
 | `GET /stats/overall` | flat age fields | age nested under `stats.age` with keys like `age_18_to_29`, `age_50_to_99` |
 | `GET /rankings/wppr` | `first_name`/`last_name`, `wppr_rank`, `ratings_value` | `name` (full), `current_rank`, `rating_value`; collectors split `name` on whitespace |
 
-> **Discrepancy flag for `CLAUDE.md` / `NOTES.md`:** both session notes and `CLAUDE.md` list `players_by_year` fields as `current_year_count` / `previous_year_count`. The actual interface in `lib/ifpa-client.ts:32-38` and the usage in `lib/collectors/annual-collector.ts:30-32` both use **`count`** (not `current_year_count`). `CLAUDE.md` should be corrected on next swarm run.
+> **Resolved (session 8, 2026-04-29):** an earlier "fix" had renamed the field to `count` in both `lib/ifpa-client.ts` and the collector. The IFPA API has never returned `count` for this endpoint — the rename caused `parseInt(undefined)` → `NaN` → JSON null, which violated the NOT NULL constraint on `unique_players` and silently failed the entire annual upsert for 11 weeks. Reverted to `current_year_count`, plus added `Number.isFinite()` guards as a belt-and-suspenders defense.
 
 - **Canonical:** `lib/ifpa-client.ts` (types + fetch wrappers). All coercion from the string-typed IFPA response to numeric DB columns happens inside the collector (`parseInt`, `parseFloat`).
 
